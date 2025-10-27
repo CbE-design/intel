@@ -2,14 +2,25 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getSubjectById, getSubjectLocations } from '@/lib/data';
 import { User, FileText, MapPin } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
+import type { Location, Subject } from '@/lib/types';
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
-export function SubjectDetailTabs({ subjectId }: { subjectId: string }) {
-  const subject = getSubjectById(subjectId);
-  const locations = getSubjectLocations(subjectId);
+export function SubjectDetailTabs({ subject }: { subject: Subject }) {
+  const firestore = useFirestore();
+
+  const locationsQuery = useMemoFirebase(
+    () =>
+      firestore
+        ? query(collection(firestore, 'subject_profiles', subject.id, 'location_data'))
+        : null,
+    [firestore, subject.id]
+  );
+  const { data: locations } = useCollection<Location>(locationsQuery);
 
   if (!subject) {
     return <div>Subject not found.</div>;
@@ -26,7 +37,7 @@ export function SubjectDetailTabs({ subjectId }: { subjectId: string }) {
         </TabsTrigger>
         <TabsTrigger value="location">
           <MapPin className="mr-2 h-4 w-4" /> Location
-        </TabsTrigger>
+        </Tabs-Trigger>
       </TabsList>
       <TabsContent value="profile">
         <Card>
@@ -60,7 +71,7 @@ export function SubjectDetailTabs({ subjectId }: { subjectId: string }) {
         <BackgroundCheckForm subject={subject} />
       </TabsContent>
       <TabsContent value="location">
-        <LocationMap locations={locations} />
+        <LocationMap locations={locations || []} />
       </TabsContent>
     </Tabs>
   );

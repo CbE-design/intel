@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export type Subject = {
   id: string;
   name: string;
@@ -6,13 +8,13 @@ export type Subject = {
   phoneNumber: string;
   avatarUrl: string;
   status: 'Clear' | 'Review' | 'Pending';
-  lastCheck: string;
+  lastCheck: Timestamp | string;
 };
 
 export type Location = {
   lat: number;
   lng: number;
-  timestamp: string;
+  timestamp: Timestamp;
 };
 
 export type Report = {

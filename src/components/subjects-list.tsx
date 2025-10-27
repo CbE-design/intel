@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { MoreHorizontal, PlusCircle, Search } from 'lucide-react';
 import type { Subject } from '@/lib/types';
 import {
@@ -26,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { format } from 'date-fns';
 
 const statusStyles: Record<Subject['status'], string> = {
   Clear: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -97,7 +97,13 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
                     {subject.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{subject.lastCheck}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {subject.lastCheck instanceof Date
+                    ? format(subject.lastCheck, 'yyyy-MM-dd')
+                    : typeof subject.lastCheck === 'string'
+                    ? subject.lastCheck
+                    : subject.lastCheck?.toDate().toLocaleDateString()}
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

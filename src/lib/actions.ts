@@ -4,6 +4,7 @@ import { generateBackgroundCheckReport, type GenerateBackgroundCheckReportInput 
 import { backgroundCheckSchema } from '@/app/schemas';
 import { getSubjectById } from './data';
 import type { Report } from './types';
+import { revalidatePath } from 'next/cache';
 
 interface FormState {
   report?: Report;
@@ -16,7 +17,7 @@ export async function generateReportAction(
   formData: FormData
 ): Promise<FormState> {
   try {
-    const subject = getSubjectById(subjectId);
+    const subject = await getSubjectById(subjectId);
     if (!subject) {
       return { error: 'Subject not found.' };
     }
@@ -50,6 +51,8 @@ export async function generateReportAction(
     };
 
     const result = await generateBackgroundCheckReport(input);
+
+    revalidatePath(`/subjects/${subjectId}`);
     
     return { report: result };
 
