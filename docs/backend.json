@@ -1,0 +1,399 @@
+{
+  "entities": {
+    "SubjectProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubjectProfile",
+      "type": "object",
+      "description": "Represents a subject profile for background checks.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SubjectProfile entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the subject."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the subject."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "The date of birth of the subject.",
+          "format": "date"
+        },
+        "nationalId": {
+          "type": "string",
+          "description": "The national ID number of the subject."
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "The contact number of the subject."
+        },
+        "address": {
+          "type": "string",
+          "description": "The address of the subject."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the subject profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the subject profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "dateOfBirth",
+        "nationalId"
+      ]
+    },
+    "BackgroundCheck": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BackgroundCheck",
+      "type": "object",
+      "description": "Represents a background check initiated for a subject.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the BackgroundCheck entity."
+        },
+        "subjectProfileId": {
+          "type": "string",
+          "description": "Reference to SubjectProfile. (Relationship: SubjectProfile 1:N BackgroundCheck)"
+        },
+        "initiationDate": {
+          "type": "string",
+          "description": "The date when the background check was initiated.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the background check (e.g., 'In Progress', 'Completed')."
+        },
+        "parameters": {
+          "type": "string",
+          "description": "Parameters and criteria used for the background check."
+        },
+        "reportId": {
+          "type": "string",
+          "description": "Reference to the generated Report entity. (Relationship: BackgroundCheck 1:1 Report)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the background check was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the background check was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "subjectProfileId",
+        "initiationDate",
+        "status",
+        "parameters"
+      ]
+    },
+    "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a generated background check report.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Report entity."
+        },
+        "backgroundCheckId": {
+          "type": "string",
+          "description": "Reference to BackgroundCheck. (Relationship: BackgroundCheck 1:1 Report)"
+        },
+        "generationDate": {
+          "type": "string",
+          "description": "The date when the report was generated.",
+          "format": "date-time"
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the report (e.g., text, PDF link)."
+        },
+        "riskAssessment": {
+          "type": "string",
+          "description": "The risk assessment derived from the background check."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the report was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the report was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "backgroundCheckId",
+        "generationDate",
+        "content",
+        "riskAssessment"
+      ]
+    },
+    "LocationData": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LocationData",
+      "type": "object",
+      "description": "Represents location data for a mobile device.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the LocationData entity."
+        },
+        "subjectProfileId": {
+          "type": "string",
+          "description": "Reference to SubjectProfile. (Relationship: SubjectProfile 1:N LocationData)"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "The identifier of the mobile device."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The latitude coordinate."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The longitude coordinate."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the location data.",
+          "format": "date-time"
+        },
+        "consent": {
+          "type": "boolean",
+          "description": "Indicates whether the user has consented to location tracking."
+        }
+      },
+      "required": [
+        "id",
+        "subjectProfileId",
+        "deviceId",
+        "latitude",
+        "longitude",
+        "timestamp",
+        "consent"
+      ]
+    },
+    "ExternalSource": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExternalSource",
+      "type": "object",
+      "description": "Represents a third-party data source integrated with the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ExternalSource entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the external data source."
+        },
+        "apiUrl": {
+          "type": "string",
+          "description": "The API URL for accessing the external data source.",
+          "format": "uri"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "The API key for authenticating with the external data source."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the data provided by the external source."
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Timestamp indicating when the data from the external source was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "apiUrl",
+        "apiKey"
+      ]
+    },
+    "BackgroundCheckExternalSource": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BackgroundCheckExternalSource",
+      "type": "object",
+      "description": "Represents the link between a background check and an external source.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the BackgroundCheckExternalSource entity."
+        },
+        "backgroundCheckId": {
+          "type": "string",
+          "description": "Reference to BackgroundCheck. (Relationship: BackgroundCheck N:N ExternalSource)"
+        },
+        "externalSourceId": {
+          "type": "string",
+          "description": "Reference to ExternalSource. (Relationship: BackgroundCheck N:N ExternalSource)"
+        },
+        "data": {
+          "type": "string",
+          "description": "Data retrieved from the external source related to the background check (e.g., JSON blob)."
+        },
+        "retrievedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the data from the external source was retrieved.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "backgroundCheckId",
+        "externalSourceId",
+        "data",
+        "retrievedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/subject_profiles/{subjectProfileId}",
+        "definition": {
+          "entityName": "SubjectProfile",
+          "schema": {
+            "$ref": "#/backend/entities/SubjectProfile"
+          },
+          "description": "Stores subject profiles. Each document contains data related to an individual subject being checked.",
+          "params": [
+            {
+              "name": "subjectProfileId",
+              "description": "The unique identifier for the subject profile."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}",
+        "definition": {
+          "entityName": "BackgroundCheck",
+          "schema": {
+            "$ref": "#/backend/entities/BackgroundCheck"
+          },
+          "description": "Stores background checks associated with a subject profile.",
+          "params": [
+            {
+              "name": "subjectProfileId",
+              "description": "The unique identifier for the subject profile."
+            },
+            {
+              "name": "backgroundCheckId",
+              "description": "The unique identifier for the background check."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": {
+            "$ref": "#/backend/entities/Report"
+          },
+          "description": "Stores reports associated with a background check.",
+          "params": [
+            {
+              "name": "subjectProfileId",
+              "description": "The unique identifier for the subject profile."
+            },
+            {
+              "name": "backgroundCheckId",
+              "description": "The unique identifier for the background check."
+            },
+            {
+              "name": "reportId",
+              "description": "The unique identifier for the report."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subject_profiles/{subjectProfileId}/location_data/{locationDataId}",
+        "definition": {
+          "entityName": "LocationData",
+          "schema": {
+            "$ref": "#/backend/entities/LocationData"
+          },
+          "description": "Stores location data associated with a subject profile.",
+          "params": [
+            {
+              "name": "subjectProfileId",
+              "description": "The unique identifier for the subject profile."
+            },
+            {
+              "name": "locationDataId",
+              "description": "The unique identifier for the location data."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/external_sources/{externalSourceId}",
+        "definition": {
+          "entityName": "ExternalSource",
+          "schema": {
+            "$ref": "#/backend/entities/ExternalSource"
+          },
+          "description": "Stores information about external data sources.",
+          "params": [
+            {
+              "name": "externalSourceId",
+              "description": "The unique identifier for the external source."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/background_check_external_sources/{backgroundCheckExternalSourceId}",
+        "definition": {
+          "entityName": "BackgroundCheckExternalSource",
+          "schema": {
+            "$ref": "#/backend/entities/BackgroundCheckExternalSource"
+          },
+          "description": "Stores the link between a background check and an external source, along with the retrieved data.",
+          "params": [
+            {
+              "name": "backgroundCheckExternalSourceId",
+              "description": "The unique identifier for the background check external source link."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support Veritas Intel's core features with a focus on security, scalability, and maintainability. The structure is organized around subject profiles and their associated background checks, reports, and location data. Authorization independence is achieved by using path-based ownership for user-related data. External sources and their integration with background checks are managed through dedicated collections.\n\n- `/subject_profiles/{subjectProfileId}`: Stores the main subject profile data. This is the root for all related subcollections.\n- `/subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}`: Stores background checks associated with a subject profile. This allows easy querying of background checks for a specific subject.\n- `/subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}/reports/{reportId}`: Stores background check reports. This nested structure ensures that reports are always associated with a specific background check and subject profile.\n- `/subject_profiles/{subjectProfileId}/location_data/{locationDataId}`: Stores location data for a subject profile. This allows easy retrieval of location history for a subject.\n- `/external_sources/{externalSourceId}`: Stores information about external data sources.\n- `/background_check_external_sources/{backgroundCheckExternalSourceId}`:  A collection to manage the many-to-many relationship between BackgroundCheck and ExternalSource.\n\nThis structure facilitates secure `list` operations (QAPs) by segregating data with different access needs into separate collections. Path-based ownership ensures that users can only access their own subject profiles and associated data. The membership model is not explicitly used in this design as the primary access control is based on ownership. Future enhancements might incorporate a membership model for collaborative features. Authorization Independence is primarily achieved through path-based ownership, avoiding the need for `get()` calls in security rules."
+  }
+}
