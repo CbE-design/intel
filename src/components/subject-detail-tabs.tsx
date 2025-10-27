@@ -37,7 +37,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         </TabsTrigger>
         <TabsTrigger value="location">
           <MapPin className="mr-2 h-4 w-4" /> Location
-        </Tabs-Trigger>
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="profile">
         <Card>
