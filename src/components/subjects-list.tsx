@@ -58,10 +58,12 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Subject
-          </Button>
+          <Link href="/subjects/new">
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Subject
+            </Button>
+          </Link>
         </div>
       </CardHeader>
       <CardContent>
