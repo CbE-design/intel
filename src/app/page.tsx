@@ -8,7 +8,7 @@ import { useFirestore } from '@/firebase';
 import type { Subject } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Home() {
   const firestore = useFirestore();
