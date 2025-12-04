@@ -86,7 +86,7 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
                       <AvatarImage src={subject.avatarUrl} alt={subject.name} data-ai-hint="person" />
                       <AvatarFallback>{subject.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <Link href={`/subjects/${subject.id}`} className="hover:underline">
+                    <Link href={`/subjects/${subject.id}`} className="font-medium hover:underline">
                       {subject.name}
                     </Link>
                   </div>
@@ -114,9 +114,9 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <Link href={`/subjects/${subject.id}`} passHref>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                      </Link>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/subjects/${subject.id}`}>View Details</Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem>Edit Profile</DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>

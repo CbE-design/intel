@@ -27,12 +27,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/" legacyBehavior passHref>
-                <SidebarMenuButton tooltip="Subjects" isActive>
+              <SidebarMenuButton asChild tooltip="Subjects" isActive>
+                <Link href="/">
                   <Users />
                   <span>Subjects</span>
-                </SidebarMenuButton>
-              </Link>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
