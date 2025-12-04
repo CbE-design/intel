@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from 'firebase/firestore';
 
 export type Subject = {
   id: string;
@@ -8,7 +8,7 @@ export type Subject = {
   phoneNumber: string;
   avatarUrl: string;
   status: 'Clear' | 'Review' | 'Pending';
-  lastCheck: Timestamp | string;
+  lastCheck: Timestamp | Date | string;
 };
 
 export type Location = {

@@ -26,12 +26,24 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { format } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 
 const statusStyles: Record<Subject['status'], string> = {
   Clear: 'bg-green-500/20 text-green-400 border-green-500/30',
   Review: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   Pending: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
+
+function formatDate(date: Subject['lastCheck']): string {
+    if (!date) return '';
+    if (date instanceof Timestamp) {
+      return format(date.toDate(), 'yyyy-MM-dd');
+    }
+    if (date instanceof Date) {
+      return format(date, 'yyyy-MM-dd');
+    }
+    return date;
+  }
 
 export function SubjectsList({ subjects }: { subjects: Subject[] }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,11 +112,7 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  {subject.lastCheck instanceof Date
-                    ? format(subject.lastCheck, 'yyyy-MM-dd')
-                    : typeof subject.lastCheck === 'string'
-                    ? subject.lastCheck
-                    : subject.lastCheck?.toDate().toLocaleDateString()}
+                  {formatDate(subject.lastCheck)}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
