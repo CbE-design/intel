@@ -73,6 +73,16 @@ const subjects = [
     status: 'Review',
     lastCheck: '2024-03-30',
   },
+  {
+    id: 'S006',
+    name: 'Fikile Zuma',
+    idNumber: '9002107005081',
+    address: '555 Rivonia Rd, Sandton, 2196',
+    phoneNumber: '+27 76 543 2109',
+    avatarUrl: 'https://picsum.photos/seed/6/100/100',
+    status: 'Pending',
+    lastCheck: '2024-06-01',
+  },
 ];
 
 const locations = {
@@ -102,7 +112,7 @@ const locations = {
     {
       lat: -33.918,
       lng: 18.4232,
-      timestamp: Timestamp.fromDate(new_Date('2024-05-21T13:00:00Z')),
+      timestamp: Timestamp.fromDate(new Date('2024-05-21T13:00:00Z')),
     },
   ],
   S003: [
@@ -129,6 +139,18 @@ const locations = {
       lat: -33.9608,
       lng: 25.6022,
       timestamp: Timestamp.fromDate(new Date('2024-05-21T14:00:00Z')),
+    },
+  ],
+  S006: [
+    {
+      lat: -26.1076,
+      lng: 28.0567,
+      timestamp: Timestamp.fromDate(new Date('2024-06-01T10:00:00Z')),
+    },
+    {
+      lat: -26.099,
+      lng: 28.05,
+      timestamp: Timestamp.fromDate(new Date('2024-06-01T15:30:00Z')),
     },
   ],
 };
