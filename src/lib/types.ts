@@ -20,4 +20,5 @@ export type Location = {
 export type Report = {
   report: string;
   riskAssessment: string;
+  verificationScore?: number;
 };
