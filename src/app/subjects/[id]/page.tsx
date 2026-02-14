@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { use } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -13,11 +14,13 @@ import { notFound } from 'next/navigation';
 import type { Subject } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function SubjectPage({ params }: { params: { id: string } }) {
+export default function SubjectPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const firestore = useFirestore();
+  
   const subjectRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'subject_profiles', params.id) : null),
-    [firestore, params.id]
+    () => (firestore ? doc(firestore, 'subject_profiles', id) : null),
+    [firestore, id]
   );
   const { data: subject, isLoading } = useDoc<Subject>(subjectRef);
 

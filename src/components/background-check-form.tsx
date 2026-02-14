@@ -1,7 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect } from 'react';
+import { useActionState, useFormStatus, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
@@ -30,7 +29,7 @@ function SubmitButton() {
 }
 
 export function BackgroundCheckForm({ subject }: { subject: Subject }) {
-  const [state, formAction] = useFormState(generateReportAction.bind(null, subject.id), initialState);
+  const [state, formAction] = useActionState(generateReportAction.bind(null, subject.id), initialState);
   const { toast } = useToast();
 
   const form = useForm<BackgroundCheckSchema>({
