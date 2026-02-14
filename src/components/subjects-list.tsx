@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MoreHorizontal, PlusCircle, Search } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, Trash2 } from 'lucide-react';
 import type { Subject } from '@/lib/types';
 import {
   Table,
@@ -26,7 +26,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
 
 const statusStyles: Record<Subject['status'], string> = {
   Clear: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -35,18 +38,20 @@ const statusStyles: Record<Subject['status'], string> = {
 };
 
 function formatDate(date: Subject['lastCheck']): string {
-    if (!date) return '';
-    if (date instanceof Timestamp) {
-      return format(date.toDate(), 'yyyy-MM-dd');
-    }
-    if (date instanceof Date) {
-      return format(date, 'yyyy-MM-dd');
-    }
-    return date;
+  if (!date) return 'Never';
+  if (date instanceof Timestamp) {
+    return format(date.toDate(), 'yyyy-MM-dd');
   }
+  if (date instanceof Date) {
+    return format(date, 'yyyy-MM-dd');
+  }
+  return date;
+}
 
 export function SubjectsList({ subjects }: { subjects: Subject[] }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   const filteredSubjects = subjects.filter(
     (subject) =>
@@ -54,11 +59,23 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
       subject.idNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleDelete = (id: string, name: string) => {
+    if (!firestore) return;
+    if (confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
+      const docRef = doc(firestore, 'subject_profiles', id);
+      deleteDocumentNonBlocking(docRef);
+      toast({
+        title: "Subject Deleted",
+        description: `${name} has been removed from the intelligence database.`,
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Subject Profiles</CardTitle>
-        <CardDescription>Manage and view background check subjects.</CardDescription>
+        <CardDescription>Comprehensive database of intelligence subjects.</CardDescription>
         <div className="mt-4 flex items-center gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -73,7 +90,7 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
           <Link href="/subjects/new">
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Create Subject
+              Add Subject
             </Button>
           </Link>
         </div>
@@ -92,49 +109,63 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSubjects.map((subject) => (
-              <TableRow key={subject.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={subject.avatarUrl} alt={subject.name} data-ai-hint="person" />
-                      <AvatarFallback>{subject.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <Link href={`/subjects/${subject.id}`} className="font-medium hover:underline">
-                      {subject.name}
-                    </Link>
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell font-mono">{subject.idNumber}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={statusStyles[subject.status]}>
-                    {subject.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {formatDate(subject.lastCheck)}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/subjects/${subject.id}`}>View Details</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Edit Profile</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {filteredSubjects.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  No subjects found matching your criteria.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredSubjects.map((subject) => (
+                <TableRow key={subject.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={subject.avatarUrl} alt={subject.name} data-ai-hint="person" />
+                        <AvatarFallback>{subject.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <Link href={`/subjects/${subject.id}`} className="font-medium hover:underline">
+                        {subject.name}
+                      </Link>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell font-mono">{subject.idNumber}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={statusStyles[subject.status]}>
+                      {subject.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {formatDate(subject.lastCheck)}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/subjects/${subject.id}`}>View Intelligence</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled>Edit Profile</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive" 
+                          onClick={() => handleDelete(subject.id, subject.name)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Profile
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>
