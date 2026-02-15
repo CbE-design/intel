@@ -58,20 +58,24 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const { data: auditLog } = useCollection<AuditEntry>(auditQuery);
 
   const latestReport = reports && reports.length > 0 ? reports[0] : null;
+  const latestLocation = locations && locations.length > 0 ? locations[0] : null;
 
   const simulatePing = () => {
     if (!firestore) return;
     setSimulating(true);
     
     // Determine the starting point for simulation
-    const base = (locations && locations.length > 0)
-      ? { lat: locations[0].lat, lng: locations[0].lng } 
+    const base = latestLocation
+      ? { lat: latestLocation.lat, lng: latestLocation.lng } 
       : { lat: -26.2041, lng: 28.0473 }; // Default to JHB central
 
     // Add a randomized offset to simulate realistic movement or GPS drift
+    const newLat = base.lat + (Math.random() - 0.5) * 0.005;
+    const newLng = base.lng + (Math.random() - 0.5) * 0.005;
+
     const newPoint = {
-      lat: base.lat + (Math.random() - 0.5) * 0.005,
-      lng: base.lng + (Math.random() - 0.5) * 0.005,
+      lat: newLat,
+      lng: newLng,
       timestamp: serverTimestamp(),
       consent: true,
       deviceId: 'GSM-VECTOR-01',
@@ -84,7 +88,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
     // Execute Firestore writes
     addDocumentNonBlocking(locationCol, newPoint);
     addDocumentNonBlocking(auditCol, {
-      action: 'Active GSM Location Intercept',
+      action: `GSM Location Intercept: ${newLat.toFixed(4)}, ${newLng.toFixed(4)}`,
       timestamp: serverTimestamp(),
       analyst: 'Automated Investigative Agent',
       status: 'Info'
@@ -100,7 +104,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
       setSimulating(false);
       toast({
         title: "Coordinate Locked",
-        description: "Subject location updated on master tracking board.",
+        description: `Subject location updated: ${newLat.toFixed(4)}, ${newLng.toFixed(4)}`,
       });
     }, 1200);
   };
@@ -224,8 +228,8 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
            <Card className="flex flex-col items-center justify-center p-4">
               <Activity className="h-6 w-6 text-primary mb-2" />
               <span className="text-[10px] font-bold uppercase text-muted-foreground">Last Ping</span>
-              <span className="text-sm font-semibold">
-                {locations && locations.length > 0 ? 'ACTIVE' : 'NO DATA'}
+              <span className="text-sm font-semibold font-mono">
+                {latestLocation ? `${latestLocation.lat.toFixed(4)}, ${latestLocation.lng.toFixed(4)}` : 'NO DATA'}
               </span>
            </Card>
            <Card className="flex flex-col items-center justify-center p-4 border-yellow-500/20 bg-yellow-500/5">
