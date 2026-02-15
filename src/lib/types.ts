@@ -39,3 +39,18 @@ export type Report = {
     employmentVerification: boolean;
   };
 };
+
+export interface CorporateLinkage {
+  companyName: string;
+  registrationNumber: string;
+  role: string;
+  status: string;
+  appointmentDate: string;
+}
+
+export interface OSINTMatch {
+  platform: string;
+  status: 'Match Found' | 'No Match' | 'Pending';
+  link?: string;
+  details?: string;
+}
