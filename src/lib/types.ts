@@ -15,10 +15,19 @@ export type Location = {
   lat: number;
   lng: number;
   timestamp: Timestamp;
+  consent?: boolean;
+  deviceId?: string;
 };
 
 export type Report = {
   report: string;
   riskAssessment: string;
-  verificationScore?: number;
+  verificationScore: number;
+  timestamp?: Timestamp | Date | string;
+  initiatedBy?: string;
+  parameters?: {
+    criminalRecordCheck: boolean;
+    creditHistoryCheck: boolean;
+    employmentVerification: boolean;
+  };
 };

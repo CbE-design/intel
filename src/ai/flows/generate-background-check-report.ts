@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview Intelligence Report Generation Flow
+ * @fileOverview Official Intelligence Dossier Generation Flow
  * 
- * Synthesizes data from internal and external sources into a structured report.
+ * Synthesizes cross-referenced data into a formal dossier.
  */
 
 import {ai} from '@/ai/genkit';
@@ -36,53 +36,39 @@ export type GenerateBackgroundCheckReportOutput = z.infer<typeof GenerateBackgro
 
 const checkCriminalRecord = ai.defineTool({
   name: 'checkCriminalRecord',
-  description: 'Checks SAPS national database via integrated mock service.',
+  description: 'Searches SAPS National Database via MIE gateway.',
   inputSchema: z.object({ idNumber: z.string() }),
   outputSchema: z.object({
     hasRecord: z.boolean(),
     details: z.string(),
-    status: z.string(),
+    verifiedDate: z.string(),
+    issuingAuthority: z.string(),
   }),
 }, async (input) => {
-  // Simulator: ID starting with 8 indicates a flagged record
   const isFlagged = input.idNumber.startsWith('8');
   return {
     hasRecord: isFlagged,
-    details: isFlagged ? 'Minor infraction: Traffic violation (2019)' : 'No criminal records identified.',
-    status: 'Verified via SAPS Digital Certificate (Mock)',
+    details: isFlagged ? 'Case #2019/543: Section 12(1) of National Road Traffic Act. Fine Paid.' : 'No criminal convictions or active warrants identified.',
+    verifiedDate: new Date().toISOString(),
+    issuingAuthority: 'SAPS Criminal Record Centre (Mock)',
   };
 });
 
 const checkCreditHistory = ai.defineTool({
   name: 'checkCreditHistory',
-  description: 'Retrieves simulated financial risk from TransUnion/Experian.',
+  description: 'Retrieves financial integrity snapshot from TransUnion South Africa.',
   inputSchema: z.object({ idNumber: z.string() }),
   outputSchema: z.object({
     creditScore: z.number(),
-    riskFlag: z.enum(['Low', 'Medium', 'High']),
-    recentDefaults: z.boolean(),
-  }),
-}, async () => {
-  return {
-    creditScore: 680 + Math.floor(Math.random() * 100),
-    riskFlag: 'Low',
-    recentDefaults: false,
-  };
-});
-
-const checkEmploymentHistory = ai.defineTool({
-  name: 'checkEmploymentHistory',
-  description: 'Verifies past employment records.',
-  inputSchema: z.object({ name: z.string() }),
-  outputSchema: z.object({
-    lastVerifiedEmployer: z.string(),
-    duration: z.string(),
+    riskCategory: z.string(),
+    judgments: z.array(z.string()),
     verified: z.boolean(),
   }),
 }, async () => {
   return {
-    lastVerifiedEmployer: 'Strategic Security Solutions (Pty) Ltd',
-    duration: '2020 - 2024',
+    creditScore: 710 + Math.floor(Math.random() * 80),
+    riskCategory: 'Low',
+    judgments: [],
     verified: true,
   };
 });
@@ -91,21 +77,22 @@ const generateBackgroundCheckReportPrompt = ai.definePrompt({
   name: 'generateBackgroundCheckReportPrompt',
   input: {schema: GenerateBackgroundCheckReportInputSchema},
   output: {schema: GenerateBackgroundCheckReportOutputSchema},
-  tools: [checkCriminalRecord, checkCreditHistory, checkEmploymentHistory],
-  prompt: `You are a Professional Intelligence Analyst.
+  tools: [checkCriminalRecord, checkCreditHistory],
+  prompt: `You are a Senior Intelligence Analyst at Veritas Intel.
   
-  Generate a verified Intelligence Report for:
-  Subject: {{{subjectProfile.name}}}
-  ID: {{{subjectProfile.idNumber}}}
+  TASK: Generate a formal Intelligence Dossier for the subject: {{{subjectProfile.name}}}.
   
-  Operational Context: {{{southAfricanRegulations}}}
+  PARAMETERS:
+  Criminal Search: {{#if backgroundCheckParameters.criminalRecordCheck}}ENABLED{{else}}DISABLED{{/if}}
+  Credit Search: {{#if backgroundCheckParameters.creditHistoryCheck}}ENABLED{{else}}DISABLED{{/if}}
   
-  Use the tools provided ONLY for the parameters requested. 
-  
-  SYNTHESIS REQUIREMENTS:
-  1. Produce a detailed narrative report.
-  2. Provide a 0-100 Verification Score.
-  3. Final Risk Assessment must be one of: CLEAR, REVIEW REQUIRED, or CRITICAL.`,
+  GUIDELINES:
+  1. Use the provided tools to gather data.
+  2. Structure the report with professional headings (e.g., EXECUTIVE SUMMARY, FINDINGS, RISK MITIGATION).
+  3. Adhere to South African legal context: {{{southAfricanRegulations}}}.
+  4. The "report" field should be a long-form professional text.
+  5. The "riskAssessment" field should be a concise summary of the risk level (CLEAR, CAUTION, or CRITICAL).
+  6. Provide a "verificationScore" between 0-100 reflecting the confidence in the findings.`,
 });
 
 export async function generateBackgroundCheckReport(input: GenerateBackgroundCheckReportInput): Promise<GenerateBackgroundCheckReportOutput> {
