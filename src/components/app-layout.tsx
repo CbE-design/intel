@@ -16,7 +16,6 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
-import { Button } from './ui/button';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,7 +41,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Subjects" isActive={pathname.startsWith('/subjects')}>
-                <Link href="/">
+                <Link href="/subjects">
                   <Users />
                   <span>Subjects</span>
                 </Link>
