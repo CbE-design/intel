@@ -6,6 +6,31 @@ import type { Location } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Radio, SignalHigh, History as HistoryIcon, AlertTriangle } from 'lucide-react';
+import { Timestamp } from 'firebase/firestore';
+
+/**
+ * Safely formats a location timestamp. 
+ * Handles Firestore Timestamps, standard Dates, and null values (e.g. while serverTimestamp is pending).
+ */
+function formatLocationTime(timestamp: any): string {
+  if (!timestamp) return 'Syncing...';
+  
+  try {
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate().toLocaleTimeString();
+    }
+    if (timestamp instanceof Date) {
+      return timestamp.toLocaleTimeString();
+    }
+    if (typeof timestamp.seconds === 'number') {
+      return new Date(timestamp.seconds * 1000).toLocaleTimeString();
+    }
+  } catch (e) {
+    console.error('Error formatting location time:', e);
+  }
+  
+  return 'Intercepted';
+}
 
 /**
  * Internal component to handle map re-centering when locations change.
@@ -100,7 +125,7 @@ export function LocationMap({ locations }: { locations: Location[] }) {
                   <AdvancedMarker 
                     key={index} 
                     position={{ lat: location.lat, lng: location.lng }}
-                    title={isLatest ? "Current Vector Lock" : `Historical Point - ${new Date(location.timestamp.seconds * 1000).toLocaleTimeString()}`}
+                    title={isLatest ? "Current Vector Lock" : `Historical Point - ${formatLocationTime(location.timestamp)}`}
                   >
                     <Pin 
                       background={isLatest ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
@@ -140,7 +165,7 @@ export function LocationMap({ locations }: { locations: Location[] }) {
               </div>
               <div className="flex items-center gap-2 opacity-70">
                 <HistoryIcon className="h-3 w-3" />
-                <span>REC: {new Date(latestLocation.timestamp.seconds * 1000).toLocaleTimeString()}</span>
+                <span>REC: {formatLocationTime(latestLocation.timestamp)}</span>
               </div>
             </div>
           )}
