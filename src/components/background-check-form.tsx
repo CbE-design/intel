@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileText, Save, ShieldCheck, Activity, Search, Database, Globe } from 'lucide-react';
 import { useFirestore } from '@/firebase';
-import { collection, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, serverTimestamp } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -34,13 +34,12 @@ const INVESTIGATIVE_STEPS = [
   "Finalizing Dossier Archive..."
 ];
 
-function SubmitButton({ isProcessing }: { isProcessing: boolean }) {
+function SubmitButton() {
   const { pending } = useFormStatus();
-  const loading = pending || isProcessing;
 
   return (
-    <Button type="submit" disabled={loading} className="w-full">
-      {loading ? (
+    <Button type="submit" disabled={pending} className="w-full">
+      {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Active Investigative Cycle...
@@ -56,12 +55,12 @@ function SubmitButton({ isProcessing }: { isProcessing: boolean }) {
 }
 
 export function BackgroundCheckForm({ subject }: { subject: Subject }) {
-  const [state, formAction] = useActionState(generateReportAction.bind(null, subject.id), initialState);
+  // Use React 19 useActionState correctly with isPending
+  const [state, formAction, isPending] = useActionState(generateReportAction.bind(null, subject.id), initialState);
   const { toast } = useToast();
   const firestore = useFirestore();
   const lastSavedReportRef = useRef<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm<BackgroundCheckSchema>({
     resolver: zodResolver(backgroundCheckSchema),
@@ -73,32 +72,23 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
     },
   });
 
-  // Handle fake progress steps
+  // Handle fake progress steps during the server action
   useEffect(() => {
-    if (isProcessing) {
-      const interval = setInterval(() => {
+    let interval: NodeJS.Timeout;
+    if (isPending) {
+      interval = setInterval(() => {
         setCurrentStep(prev => {
           if (prev < INVESTIGATIVE_STEPS.length - 1) return prev + 1;
           return prev;
         });
-      }, 1200);
-      return () => clearInterval(interval);
+      }, 1500);
     } else {
       setCurrentStep(0);
     }
-  }, [isProcessing]);
-
-  const handleSubmit = async (formData: FormData) => {
-    setIsProcessing(true);
-    // The actual action will run after this
-    formAction(formData);
-  };
+    return () => clearInterval(interval);
+  }, [isPending]);
 
   useEffect(() => {
-    if (state.error || state.report) {
-      setIsProcessing(false);
-    }
-
     if (state.error) {
       toast({
         variant: 'destructive',
@@ -117,7 +107,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
         employmentVerification: form.getValues('employmentVerification'),
       };
 
-      // Save Report
+      // Save Report to Firestore (Non-blocking)
       addDocumentNonBlocking(reportsCollection, {
         ...state.report,
         timestamp: serverTimestamp(),
@@ -127,7 +117,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
         parameters: params
       });
 
-      // Save Audit Entry
+      // Log the action to the audit trail
       addDocumentNonBlocking(auditCollection, {
         action: 'Intelligence Cycle Completed',
         timestamp: serverTimestamp(),
@@ -136,6 +126,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
       });
 
       lastSavedReportRef.current = state.report.report;
+      
       toast({
         title: "Intelligence Archived",
         description: "The verified findings have been added to the subject history.",
@@ -146,13 +137,13 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
-        <form action={handleSubmit}>
+        <form action={formAction}>
           <CardHeader>
             <CardTitle>Initiate Investigation</CardTitle>
             <CardDescription>Configure search parameters for this active intelligence cycle.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {isProcessing ? (
+            {isPending ? (
               <div className="space-y-6 py-8">
                 <div className="flex flex-col items-center text-center gap-4">
                   <Activity className="h-12 w-12 text-primary animate-pulse" />
@@ -212,9 +203,9 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
               </>
             )}
           </CardContent>
-          {!isProcessing && (
+          {!isPending && (
             <CardFooter>
-              <SubmitButton isProcessing={isProcessing} />
+              <SubmitButton />
             </CardFooter>
           )}
         </form>
