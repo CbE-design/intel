@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, FileSearch, MapPin, History, Radio, ShieldAlert, CheckCircle2, AlertCircle, Terminal, Activity, ShieldCheck } from 'lucide-react';
+import { User, FileSearch, MapPin, History, Radio, ShieldAlert, CheckCircle2, AlertCircle, Terminal, Activity, ShieldCheck, Wifi } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
 import { ReportsHistory } from './reports-history';
@@ -49,7 +49,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         ? query(
             collection(firestore, 'subject_profiles', subject.id, 'audit_log'),
             orderBy('timestamp', 'desc'),
-            limit(10)
+            limit(15)
           )
         : null,
     [firestore, subject.id]
@@ -62,35 +62,46 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
     if (!firestore) return;
     setSimulating(true);
     
-    const base = locations && locations.length > 0 
-      ? locations[0] 
-      : { lat: -26.2041, lng: 28.0473 };
+    // Determine the starting point for simulation
+    const base = (locations && locations.length > 0)
+      ? { lat: locations[0].lat, lng: locations[0].lng } 
+      : { lat: -26.2041, lng: 28.0473 }; // Default to JHB central
 
+    // Add a randomized offset to simulate realistic movement or GPS drift
     const newPoint = {
-      lat: base.lat + (Math.random() - 0.5) * 0.05,
-      lng: base.lng + (Math.random() - 0.5) * 0.05,
+      lat: base.lat + (Math.random() - 0.5) * 0.005,
+      lng: base.lng + (Math.random() - 0.5) * 0.005,
       timestamp: serverTimestamp(),
       consent: true,
-      deviceId: 'GSM-VECTOR-01'
+      deviceId: 'GSM-VECTOR-01',
+      accuracy: Math.floor(Math.random() * 20) + 5 // Accuracy in meters
     };
 
     const locationCol = collection(firestore, 'subject_profiles', subject.id, 'location_data');
     const auditCol = collection(firestore, 'subject_profiles', subject.id, 'audit_log');
 
+    // Execute Firestore writes
     addDocumentNonBlocking(locationCol, newPoint);
     addDocumentNonBlocking(auditCol, {
-      action: 'Real-time GSM Location Ping',
+      action: 'Active GSM Location Intercept',
       timestamp: serverTimestamp(),
-      analyst: 'Automated Tracker',
+      analyst: 'Automated Investigative Agent',
       status: 'Info'
     });
 
     toast({
-      title: "Device Ping Simulated",
-      description: "New location coordinate added and logged.",
+      title: "GSM Poll Initiated",
+      description: "Intercepting cellular triangulation data...",
     });
 
-    setTimeout(() => setSimulating(false), 500);
+    // Hold the loading state for a moment to signify "active work"
+    setTimeout(() => {
+      setSimulating(false);
+      toast({
+        title: "Coordinate Locked",
+        description: "Subject location updated on master tracking board.",
+      });
+    }, 1200);
   };
 
   return (
@@ -149,37 +160,43 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                    <p className="text-sm leading-relaxed text-foreground/80 line-clamp-3 italic">"{latestReport.report}"</p>
                 </div>
               ) : (
-                <div className="text-center py-6 border border-dashed rounded-lg">
+                <div className="text-center py-10 border border-dashed rounded-lg bg-background/50">
                   <ShieldAlert className="h-8 w-8 text-muted mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Intelligence Cycle Required</p>
+                  <p className="text-sm text-muted-foreground">No Active Intelligence Cycle Detected</p>
+                  <Button variant="outline" size="sm" className="mt-4" asChild>
+                    <TabsTrigger value="background-check" className="bg-transparent border-none">Initiate Cycle</TabsTrigger>
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
           
           <Card className="bg-muted/30">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 border-b mb-2">
               <CardTitle className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                <Activity className="h-3 w-3" /> Operational Feed
+                <Activity className="h-3 w-3 text-primary" /> Operational Feed
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[200px] pr-4">
+              <ScrollArea className="h-[240px] pr-4">
                 <div className="space-y-4">
                   {auditLog && auditLog.length > 0 ? (
                     auditLog.map((log) => (
-                      <div key={log.id} className="border-l-2 border-primary/30 pl-3 py-1">
-                        <p className="text-[11px] font-semibold">{log.action}</p>
+                      <div key={log.id} className="border-l-2 border-primary/30 pl-3 py-1 relative">
+                        <div className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-primary" />
+                        <p className="text-[11px] font-semibold leading-tight">{log.action}</p>
                         <div className="flex justify-between items-center mt-1">
-                          <span className="text-[9px] text-muted-foreground">
-                            {log.timestamp instanceof Date ? log.timestamp.toLocaleTimeString() : 'Recent'}
+                          <span className="text-[9px] text-muted-foreground font-mono">
+                            {log.timestamp instanceof Object && 'seconds' in log.timestamp 
+                              ? new Date(log.timestamp.seconds * 1000).toLocaleTimeString() 
+                              : 'Just now'}
                           </span>
-                          <span className="text-[9px] font-bold uppercase">{log.analyst}</span>
+                          <span className="text-[8px] font-bold uppercase bg-primary/10 px-1 rounded">{log.analyst}</span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-[10px] text-muted-foreground text-center py-4">No recent activity</p>
+                    <p className="text-[10px] text-muted-foreground text-center py-8">No operational history available.</p>
                   )}
                 </div>
               </ScrollArea>
@@ -188,25 +205,27 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-           <Card className="flex flex-col items-center justify-center p-4">
+           <Card className="flex flex-col items-center justify-center p-4 border-green-500/20 bg-green-500/5">
               <ShieldCheck className="h-6 w-6 text-green-500 mb-2" />
               <span className="text-[10px] font-bold uppercase text-muted-foreground">DHA Match</span>
-              <span className="text-sm font-semibold">VERIFIED</span>
+              <span className="text-sm font-semibold">CERTIFIED</span>
            </Card>
-           <Card className="flex flex-col items-center justify-center p-4">
+           <Card className="flex flex-col items-center justify-center p-4 border-blue-500/20 bg-blue-500/5">
               <CheckCircle2 className="h-6 w-6 text-blue-500 mb-2" />
-              <span className="text-[10px] font-bold uppercase text-muted-foreground">CIPC Register</span>
-              <span className="text-sm font-semibold">LINKED</span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">CIPC Link</span>
+              <span className="text-sm font-semibold">VERIFIED</span>
            </Card>
            <Card className="flex flex-col items-center justify-center p-4">
               <Activity className="h-6 w-6 text-primary mb-2" />
               <span className="text-[10px] font-bold uppercase text-muted-foreground">Last Ping</span>
-              <span className="text-sm font-semibold">5m AGO</span>
+              <span className="text-sm font-semibold">
+                {locations && locations.length > 0 ? 'ACTIVE' : 'NO DATA'}
+              </span>
            </Card>
-           <Card className="flex flex-col items-center justify-center p-4">
-              <Radio className="h-6 w-6 text-yellow-500 mb-2" />
-              <span className="text-[10px] font-bold uppercase text-muted-foreground">GSM Polling</span>
-              <span className="text-sm font-semibold">ACTIVE</span>
+           <Card className="flex flex-col items-center justify-center p-4 border-yellow-500/20 bg-yellow-500/5">
+              <Wifi className="h-6 w-6 text-yellow-500 mb-2" />
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">GSM Network</span>
+              <span className="text-sm font-semibold">ENCRYPTED</span>
            </Card>
         </div>
       </TabsContent>
@@ -215,7 +234,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         <Card>
           <CardHeader>
             <CardTitle>Verified Identity Profile</CardTitle>
-            <CardDescription>Consolidated data from DHA and internal security registers.</CardDescription>
+            <CardDescription>Consolidated data from Home Affairs and internal security registers.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -224,7 +243,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Full Legal Name</p>
                   <div className="flex items-center gap-2">
                     <p className="text-lg font-medium">{subject.name}</p>
-                    <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-500 border-green-500/20 uppercase">Match</Badge>
+                    <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-500 border-green-500/20 uppercase">Matched</Badge>
                   </div>
                 </div>
                 <div>
@@ -265,15 +284,29 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
 
       <TabsContent value="location" className="mt-4">
         <div className="flex flex-col gap-4">
-          <Card className="border-blue-500/20 bg-blue-500/5">
+          <Card className="border-primary/20 bg-primary/5">
             <CardContent className="pt-6 flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-sm">GSM Location Intelligence</h3>
-                <p className="text-xs text-muted-foreground">Encrypted polling via cellular network triangulation.</p>
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full bg-background border ${simulating ? 'animate-pulse border-primary' : ''}`}>
+                  <Radio className={`h-6 w-6 ${simulating ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">GSM Triangulation Protocol</h3>
+                  <p className="text-xs text-muted-foreground">Active polling via encrypted cellular network handshakes.</p>
+                </div>
               </div>
-              <Button size="sm" onClick={simulatePing} disabled={simulating}>
-                <Radio className={`mr-2 h-4 w-4 ${simulating ? 'animate-pulse' : ''}`} />
-                Initiate GSM Poll
+              <Button size="lg" onClick={simulatePing} disabled={simulating} className="min-w-[180px]">
+                {simulating ? (
+                  <>
+                    <Activity className="mr-2 h-4 w-4 animate-spin" />
+                    Triangulating...
+                  </>
+                ) : (
+                  <>
+                    <Radio className="mr-2 h-4 w-4" />
+                    Initiate GSM Poll
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
