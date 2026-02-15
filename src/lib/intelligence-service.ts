@@ -40,6 +40,7 @@ export async function testIntelligenceConnection(sourceId: string): Promise<{ su
 export async function getCorporateLinkages(idNumber: string): Promise<CorporateLinkage[]> {
   await new Promise(resolve => setTimeout(resolve, 1200));
   
+  // South African subjects often have multiple directorships in the construction or tech sectors
   if (idNumber.includes('85') || idNumber.includes('79') || idNumber.includes('88')) {
     return [
       { companyName: 'VERITAS HOLDINGS (PTY) LTD', registrationNumber: '2018/456789/07', role: 'Director', status: 'Active', appointmentDate: '2018-05-12' },
