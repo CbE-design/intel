@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useActionState } from 'react';
+import { useState, useEffect, useActionState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -25,6 +25,34 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { performDeepSearchAction } from '@/lib/actions';
 
+/**
+ * Sanitizes an object by converting Firestore timestamps (or objects with seconds/nanoseconds)
+ * to ISO strings so they can be safely passed to Server Actions.
+ */
+function sanitizeForServer(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  const sanitized = { ...obj };
+  
+  for (const key in sanitized) {
+    const value = sanitized[key];
+    if (value && typeof value === 'object') {
+      // Check if it's a Firestore Timestamp or similar
+      if ('seconds' in value && 'nanoseconds' in value) {
+        if (typeof value.toDate === 'function') {
+          sanitized[key] = value.toDate().toISOString();
+        } else {
+          sanitized[key] = new Date(value.seconds * 1000).toISOString();
+        }
+      } else if (Array.isArray(value)) {
+        sanitized[key] = value.map(item => sanitizeForServer(item));
+      } else {
+        sanitized[key] = sanitizeForServer(value);
+      }
+    }
+  }
+  return sanitized;
+}
+
 export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -34,9 +62,13 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const [osintData, setOsintData] = useState<OSINTMatch[]>([]);
   const [loadingIntel, setLoadingIntel] = useState(false);
 
+  // Sanitize the subject object to ensure no non-serializable objects (like Timestamps) 
+  // are passed across the server action boundary.
+  const plainSubject = useMemo(() => sanitizeForServer(subject), [subject]);
+
   // React 19 Action State for Deep OSINT Search
   const [deepSearchState, deepSearchAction, isDeepSearching] = useActionState(
-    performDeepSearchAction.bind(null, subject),
+    performDeepSearchAction.bind(null, plainSubject),
     {}
   );
 
