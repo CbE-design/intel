@@ -7,9 +7,11 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, children }: PageHeaderProps) {
   return (
-    <header className="flex min-h-14 items-center gap-4 border-b bg-card/40 px-4 md:px-6">
-      <h1 className="flex-1 text-lg font-semibold md:text-2xl">{title}</h1>
-      {children}
+    <header className="flex min-h-[70px] items-center gap-6 border-b bg-background px-6 md:px-8">
+      <h1 className="flex-1 text-xl font-black uppercase tracking-tighter md:text-2xl">{title}</h1>
+      <div className="flex items-center gap-4">
+        {children}
+      </div>
     </header>
   );
 }

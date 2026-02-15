@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, FileSearch, MapPin, History, Radio, ShieldAlert, 
   Terminal, Activity, ShieldCheck, Search, Building2,
-  Cpu, Layout, Layers, Shield, Fingerprint, Globe
+  Cpu, Layers, Shield, Fingerprint, Globe, MoreHorizontal
 } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
@@ -177,59 +177,57 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-6 h-12 bg-muted/50 p-1">
-        <TabsTrigger value="dossier" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-          <ShieldAlert className="mr-2 h-4 w-4" /> Dossier
+      <TabsList className="grid w-full grid-cols-6 h-12 bg-black/10 dark:bg-white/5 p-1 rounded-none border-y">
+        <TabsTrigger value="dossier" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none uppercase text-[10px] font-bold tracking-widest">
+          <ShieldAlert className="mr-2 h-3 w-3" /> Dossier
         </TabsTrigger>
-        <TabsTrigger value="profile">
-          <User className="mr-2 h-4 w-4" /> Profile
+        <TabsTrigger value="profile" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
+          <User className="mr-2 h-3 w-3" /> Identity
         </TabsTrigger>
-        <TabsTrigger value="osint">
-          <Globe className="mr-2 h-4 w-4" /> OSINT
+        <TabsTrigger value="osint" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
+          <Globe className="mr-2 h-3 w-3" /> OSINT
         </TabsTrigger>
-        <TabsTrigger value="background-check">
-          <FileSearch className="mr-2 h-4 w-4" /> investigation
+        <TabsTrigger value="background-check" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
+          <FileSearch className="mr-2 h-3 w-3" /> Search
         </TabsTrigger>
-        <TabsTrigger value="reports">
-          <History className="mr-2 h-4 w-4" /> Archive
+        <TabsTrigger value="reports" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
+          <History className="mr-2 h-3 w-3" /> Archive
         </TabsTrigger>
-        <TabsTrigger value="location">
-          <MapPin className="mr-2 h-4 w-4" /> Tracking
+        <TabsTrigger value="location" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
+          <MapPin className="mr-2 h-3 w-3" /> Tracking
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="dossier" className="mt-4 space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="border-primary/20 bg-primary/5 md:col-span-2">
-            <CardHeader className="pb-2">
+      <TabsContent value="dossier" className="mt-6 space-y-6">
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="border-2 border-primary bg-background md:col-span-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)]">
+            <CardHeader className="pb-4 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Fingerprint className="h-4 w-4 text-primary" /> Intelligence Command Console
+                <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                  <Fingerprint className="h-4 w-4 text-primary" /> Forensic Command Console
                 </CardTitle>
-                <Badge variant="outline" className="bg-background text-[10px]">REAL-TIME SYNC ACTIVE</Badge>
+                <Badge variant="outline" className="text-[9px] border-primary font-bold">NODE_ACTIVE</Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-end justify-between border-b border-primary/10 pb-4">
-                  <div className="grid gap-1">
-                    <span className="text-4xl font-bold tracking-tighter">{latestReport?.verificationScore || '0'}%</span>
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Confidence Aggregate</span>
-                  </div>
+            <CardContent className="space-y-8 pt-6">
+              <div className="grid grid-cols-2 gap-8">
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Confidence Aggregate</span>
+                  <span className="text-6xl font-black tracking-tighter">{latestReport?.verificationScore || '0'}<span className="text-2xl">%</span></span>
                 </div>
-                <div className="text-right flex flex-col items-end justify-end border-b border-primary/10 pb-4">
-                  <Badge variant={subject.status === 'Clear' ? 'default' : 'destructive'} className="text-lg px-6 py-1 uppercase rounded-sm">
+                <div className="text-right flex flex-col items-end gap-2">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Target Threat Assessment</span>
+                  <div className={`text-2xl font-black px-6 py-2 uppercase border-2 ${subject.status === 'Clear' ? 'border-primary' : 'border-destructive text-destructive'}`}>
                     {subject.status}
-                  </Badge>
-                  <p className="text-[10px] text-muted-foreground mt-2 uppercase font-bold tracking-widest">Target Threat Level</p>
+                  </div>
                 </div>
               </div>
 
               {chartData.length > 0 && (
-                <div className="h-[140px] w-full mt-4">
-                   <ChartContainer config={{ score: { label: "Score", color: "hsl(var(--primary))" } }}>
+                <div className="h-[120px] w-full border p-4 bg-muted/20">
+                   <ChartContainer config={{ score: { label: "Confidence", color: "hsl(var(--primary))" } }}>
                       <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--primary)/0.1)" />
+                        <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="hsl(var(--primary)/0.1)" />
                         <XAxis dataKey="date" hide />
                         <YAxis hide domain={[0, 100]} />
                         <ChartTooltip content={<ChartTooltipContent />} />
@@ -237,8 +235,9 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                           type="stepAfter" 
                           dataKey="score" 
                           stroke="hsl(var(--primary))" 
-                          strokeWidth={3} 
-                          dot={{ r: 4, fill: "hsl(var(--primary))" }} 
+                          strokeWidth={4} 
+                          dot={{ r: 0 }} 
+                          activeDot={{ r: 6, stroke: "white", strokeWidth: 2 }}
                         />
                       </LineChart>
                    </ChartContainer>
@@ -246,49 +245,49 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
               )}
               
               <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg bg-background p-3 border border-primary/10">
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
-                      <Radio className="h-3 w-3" /> Last Triangulation
+                  <div className="p-4 border bg-muted/5">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1 tracking-widest">
+                      <Radio className="h-3 w-3" /> Last Intercept
                     </p>
-                    <p className="text-xs font-mono font-bold">{latestLocation ? `${latestLocation.lat.toFixed(4)}, ${latestLocation.lng.toFixed(4)}` : 'SIGNAL ACQUIRING...'}</p>
+                    <p className="text-sm font-mono font-black">{latestLocation ? `${latestLocation.lat.toFixed(5)}, ${latestLocation.lng.toFixed(5)}` : 'SIGNAL_ACQUIRING'}</p>
                   </div>
-                  <div className="rounded-lg bg-background p-3 border border-primary/10">
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
-                      <Building2 className="h-3 w-3" /> Corporate Exposure
+                  <div className="p-4 border bg-muted/5">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1 tracking-widest">
+                      <Building2 className="h-3 w-3" /> Corporate Linkages
                     </p>
-                    <p className="text-xs font-bold">{corporateData.length} Identified Entities</p>
+                    <p className="text-sm font-black">{corporateData.length} Entities Identified</p>
                   </div>
               </div>
 
               {latestReport && (
-                <div className="rounded-lg bg-background p-4 border border-primary/20 shadow-inner">
-                   <h4 className="text-[10px] font-bold uppercase mb-2 text-primary flex items-center gap-2">
-                    <Terminal className="h-3 w-3" /> Executive Intelligence Summary
+                <div className="p-6 border-l-[6px] border-primary bg-muted/10">
+                   <h4 className="text-[9px] font-bold uppercase mb-3 text-muted-foreground flex items-center gap-2 tracking-[0.3em]">
+                    <Terminal className="h-3 w-3" /> Executive Summary Output
                    </h4>
-                   <p className="text-sm leading-relaxed text-foreground/80 italic font-serif">"{latestReport.report}"</p>
+                   <p className="text-sm leading-relaxed text-foreground font-medium italic">"{latestReport.report}"</p>
                 </div>
               )}
             </CardContent>
           </Card>
           
-          <Card className="bg-muted/30 border-primary/10">
-            <CardHeader className="pb-2 border-b border-primary/5 mb-2">
-              <CardTitle className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                <Activity className="h-3 w-3 text-primary animate-pulse" /> Live Operational Feed
+          <Card className="bg-black text-white dark:bg-white dark:text-black shadow-lg">
+            <CardHeader className="pb-4 border-b border-white/10 dark:border-black/10">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                <Activity className="h-3 w-3 animate-pulse" /> Operational Feed
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[360px] pr-4">
-                <div className="space-y-4">
+            <CardContent className="pt-4">
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-6">
                   {auditLog?.map((log) => (
-                    <div key={log.id} className="border-l-2 border-primary/20 pl-4 py-2 relative hover:bg-primary/5 transition-colors rounded-r-md">
-                      <div className="absolute -left-[5px] top-3 h-2 w-2 rounded-full bg-primary ring-4 ring-background" />
-                      <p className="text-[11px] font-bold leading-tight uppercase tracking-tight">{log.action}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[9px] text-muted-foreground font-mono">
+                    <div key={log.id} className="border-l border-white/20 dark:border-black/20 pl-4 py-1 relative">
+                      <div className="absolute -left-[3px] top-2 h-1.5 w-1.5 bg-white dark:bg-black ring-2 ring-black dark:ring-white" />
+                      <p className="text-[10px] font-black uppercase leading-tight tracking-tight mb-1">{log.action}</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[8px] opacity-60 font-mono">
                           {log.timestamp instanceof Object && 'seconds' in log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleTimeString() : 'RECENT'}
                         </span>
-                        <Badge variant="outline" className="text-[8px] h-3 px-1 border-primary/20">{log.analyst}</Badge>
+                        <Badge variant="outline" className="text-[7px] h-3 px-1 border-white/20 dark:border-black/20 uppercase text-white dark:text-black">{log.analyst}</Badge>
                       </div>
                     </div>
                   ))}
@@ -299,96 +298,93 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="location" className="mt-4 space-y-4">
-        <Card className="border-primary/30 bg-primary/5 shadow-lg">
+      <TabsContent value="location" className="mt-6 space-y-6">
+        <Card className="border-2 border-primary bg-background">
           <CardContent className="pt-6 flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className={`p-4 rounded-full bg-background border-2 ${simulating ? 'animate-pulse border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]' : 'border-primary/20'}`}>
-                <Radio className={`h-8 w-8 ${simulating ? 'text-primary' : 'text-muted-foreground'}`} />
+            <div className="flex items-center gap-8">
+              <div className={`p-6 border-2 ${simulating ? 'bg-primary text-primary-foreground animate-pulse' : 'border-primary bg-muted/10'}`}>
+                <Radio className={`h-10 w-10`} />
               </div>
-              <div>
-                <h3 className="font-bold text-lg tracking-tight">GSM Vectoring Interface</h3>
-                <p className="text-xs text-muted-foreground max-w-md">
-                  Active cellular handover monitoring. This module initiates a real-time triangulation request to the national GSM gateway.
+              <div className="space-y-1">
+                <h3 className="font-black text-xl uppercase tracking-tighter">GSM Vectoring Interface</h3>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                  Encrypted Handover Poll - Target UID: {subject.idNumber}
                 </p>
               </div>
             </div>
-            <Button size="lg" onClick={simulatePing} disabled={simulating} className="h-14 px-8 font-bold">
-              {simulating ? <><Activity className="mr-2 h-5 w-5 animate-spin" /> ESTABLISHING LOCK...</> : <><Radio className="mr-2 h-5 w-5" /> INITIATE GSM POLL</>}
+            <Button size="lg" onClick={simulatePing} disabled={simulating} className="h-16 px-12 font-black text-sm uppercase tracking-widest rounded-none">
+              {simulating ? <><Activity className="mr-3 h-5 w-5 animate-spin" /> ACQUIRING_FIX</> : <><Radio className="mr-3 h-5 w-5" /> INITIATE POLL</>}
             </Button>
           </CardContent>
         </Card>
         <LocationMap locations={locations || []} />
       </TabsContent>
 
-      <TabsContent value="osint" className="mt-4">
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 space-y-4">
-            <Card className="border-primary/20 bg-primary/5 shadow-lg">
-              <CardHeader className="pb-2">
+      <TabsContent value="osint" className="mt-6">
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-6">
+            <Card className="border-2 border-primary bg-background shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)]">
+              <CardHeader className="pb-4 border-b">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                     <Cpu className="h-4 w-4 text-primary" /> OSINT Intelligence Agent
                   </CardTitle>
                   <form action={deepSearchAction}>
-                    <Button size="sm" disabled={isDeepSearching} variant="default">
-                      {isDeepSearching ? <><Activity className="mr-2 h-3 w-3 animate-spin" /> Deep Search Active...</> : <><Shield className="mr-2 h-3 w-3" /> Initiate Full OSINT Cycle</>}
+                    <Button size="sm" disabled={isDeepSearching} className="rounded-none uppercase text-[10px] font-black h-8 px-4">
+                      {isDeepSearching ? <><Activity className="mr-2 h-3 w-3 animate-spin" /> RUNNING_CRAWL</> : <><Shield className="mr-2 h-3 w-3" /> DEEP DISCOVERY</>}
                     </Button>
                   </form>
                 </div>
-                <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                  Cross-referencing Sherlock, theHarvester, and DarkWeb datasets.
-                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 {deepSearchState.result && (
-                  <div className="bg-black text-green-500 font-mono text-[10px] p-4 rounded border-2 border-primary/20 h-48 overflow-auto mb-4 shadow-inner">
-                    <p className="opacity-50"># Initiating Sherlock Username Discovery Module...</p>
+                  <div className="bg-black text-white font-mono text-[9px] p-6 mb-6 overflow-auto h-48 border-l-[10px] border-primary">
+                    <p className="opacity-40 mb-2"># VERITAS INTEL TERMINAL V4.0 // AGENT_ID: OSINT_PRO</p>
                     {deepSearchState.result.sherlockResults.map((res, i) => (
-                      <p key={i} className={res.exists ? "text-green-400" : "text-gray-600"}>
-                        [{res.exists ? "+" : "-"}] {res.site.padEnd(15)}: {res.exists ? `MATCH FOUND -> ${res.url}` : "NO RECORD"}
+                      <p key={i} className={res.exists ? "font-bold" : "opacity-30"}>
+                        [{res.exists ? "MATCH" : "EMPTY"}] {res.site.toUpperCase().padEnd(15)} :: {res.exists ? res.url : "NOT_FOUND"}
                       </p>
                     ))}
-                    <p className="opacity-50"># Sherlock module cycle complete.</p>
+                    <p className="opacity-40 mt-2"># DISCOVERY CYCLE COMPLETE.</p>
                   </div>
                 )}
 
                 {deepSearchState.result ? (
-                  <div className="space-y-6">
-                    <div className="p-4 bg-background border border-primary/20 rounded-lg font-serif italic text-sm leading-relaxed shadow-sm">
+                  <div className="space-y-8">
+                    <div className="p-6 bg-muted/20 border-l-[6px] border-primary font-medium text-sm leading-relaxed italic">
                       "{deepSearchState.result.summary}"
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold uppercase text-primary flex items-center gap-2 tracking-widest">
-                          <Terminal className="h-3 w-3" /> Sherlock Username Trace
+                    <div className="grid grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                        <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-2 tracking-[0.2em]">
+                          <Terminal className="h-3 w-3" /> SHERLOCK TRACE
                         </h4>
                         <div className="grid gap-2">
                           {deepSearchState.result.sherlockResults.slice(0, 5).map((res, i) => (
-                            <div key={i} className="flex items-center justify-between text-[10px] bg-background p-2 border border-primary/5 rounded shadow-sm">
-                              <span className="font-mono font-bold">{res.site}</span>
-                              <Badge variant={res.exists ? 'default' : 'secondary'} className="h-4 text-[8px] px-2 rounded-sm">
-                                {res.exists ? 'TARGET IDENTIFIED' : 'NO RECORD'}
+                            <div key={i} className="flex items-center justify-between p-3 border-b bg-muted/5">
+                              <span className="text-[10px] font-black uppercase tracking-widest">{res.site}</span>
+                              <Badge variant={res.exists ? 'default' : 'outline'} className="text-[8px] rounded-none">
+                                {res.exists ? 'TARGET_LOCK' : 'NO_RECORDS'}
                               </Badge>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold uppercase text-primary flex items-center gap-2 tracking-widest">
-                          <Search className="h-3 w-3" /> theHarvester Recon
+                      <div className="space-y-4">
+                        <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-2 tracking-[0.2em]">
+                          <Search className="h-3 w-3" /> HARVESTER RECON
                         </h4>
                         <div className="grid gap-2">
                           {deepSearchState.result.harvesterResults.map((res, i) => (
-                            <div key={i} className="flex flex-col gap-1 bg-background p-2 border border-primary/5 rounded shadow-sm">
-                              <div className="flex items-center justify-between text-[9px] border-b border-primary/5 pb-1 mb-1">
-                                <span className="font-bold uppercase text-primary">{res.source}</span>
-                                <span className="text-muted-foreground font-mono">{res.type}</span>
+                            <div key={i} className="p-3 border-b bg-muted/5 space-y-2">
+                              <div className="flex items-center justify-between text-[8px] font-bold text-muted-foreground uppercase">
+                                <span>{res.source}</span>
+                                <span>{res.type}</span>
                               </div>
-                              <span className="text-[10px] font-mono truncate font-bold">{res.value}</span>
-                              {res.leaked && <Badge className="w-fit text-[7px] h-3 px-1 mt-1 bg-destructive/10 text-destructive border-destructive/20 font-bold">BREACH MATCH</Badge>}
+                              <p className="text-[10px] font-black font-mono truncate">{res.value}</p>
+                              {res.leaked && <Badge className="text-[7px] bg-destructive text-white border-none rounded-none">LEAK_MATCH</Badge>}
                             </div>
                           ))}
                         </div>
@@ -396,11 +392,11 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-primary/10 rounded-lg bg-muted/20">
-                    <Layers className="h-12 w-12 text-muted-foreground mb-4 opacity-10" />
-                    <p className="text-sm font-bold uppercase tracking-widest">OSINT Engine Standby</p>
-                    <p className="text-xs text-muted-foreground max-w-[300px] mt-2 italic font-serif">
-                      Execute a full cycle to crawl simulated GitHub OSINT modules and synthesize digital footprint findings.
+                  <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed bg-muted/5">
+                    <Layers className="h-16 w-16 text-muted-foreground mb-4 opacity-10" />
+                    <p className="text-xs font-black uppercase tracking-[0.4em] mb-2">Engine Standby</p>
+                    <p className="text-[10px] text-muted-foreground max-w-[280px] uppercase font-bold tracking-widest leading-loose">
+                      Initiate deep discovery to crawl simulated OSINT modules and synthesize digital forensic findings.
                     </p>
                   </div>
                 )}
@@ -408,34 +404,34 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
             </Card>
           </div>
 
-          <Card className="bg-muted/20 h-fit border-primary/5 shadow-sm">
-             <CardHeader className="pb-4">
-               <CardTitle className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                 <Globe className="h-3 w-3 text-primary" /> Surface Intelligence
+          <Card className="bg-muted/10 h-fit border border-primary">
+             <CardHeader className="pb-4 border-b">
+               <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                 <Globe className="h-3 w-3" /> Bureau Intel
                </CardTitle>
              </CardHeader>
-             <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Verified Directorships</h4>
+             <CardContent className="space-y-6 pt-6">
+                <div className="space-y-4">
+                  <h4 className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em]">CIPC Directorships</h4>
                   {corporateData.length > 0 ? corporateData.map((corp, i) => (
-                    <div key={i} className="p-3 border border-primary/10 rounded-md bg-background text-[11px] shadow-sm">
-                      <p className="font-bold uppercase text-primary">{corp.companyName}</p>
-                      <p className="text-muted-foreground text-[9px] font-mono">{corp.registrationNumber}</p>
-                      <div className="flex justify-between mt-2 font-mono text-[10px]">
-                        <span className="font-bold text-foreground">{corp.role}</span>
-                        <span className="text-muted-foreground">{corp.appointmentDate}</span>
+                    <div key={i} className="p-4 border bg-background space-y-2">
+                      <p className="font-black text-[11px] uppercase tracking-tighter">{corp.companyName}</p>
+                      <p className="text-[9px] font-mono opacity-60">{corp.registrationNumber}</p>
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <span className="text-[9px] font-black uppercase tracking-widest">{corp.role}</span>
+                        <span className="text-[9px] font-mono opacity-60">{corp.appointmentDate}</span>
                       </div>
                     </div>
-                  )) : <p className="text-[10px] text-muted-foreground italic p-4 text-center border rounded border-dashed">No CIPC linkages identified.</p>}
+                  )) : <p className="text-[10px] text-muted-foreground italic p-6 text-center border border-dashed">No CIPC records found.</p>}
                 </div>
 
-                <div className="space-y-3 pt-4 border-t border-primary/5">
-                   <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Digital Presence Matches</h4>
+                <div className="space-y-4 pt-6 border-t">
+                   <h4 className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em]">Digital Matches</h4>
                    {osintData.map((match, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2 bg-background border border-primary/5 rounded text-[10px] shadow-sm">
-                        <div className={`h-2 w-2 rounded-full ${match.status === 'Match Found' ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
-                        <span className="font-bold w-16 uppercase tracking-tighter">{match.platform}</span>
-                        <span className="text-muted-foreground truncate italic">{match.details}</span>
+                      <div key={i} className="flex items-center gap-4 p-3 bg-background border text-[10px]">
+                        <div className={`h-2 w-2 rounded-full ${match.status === 'Match Found' ? 'bg-primary' : 'bg-muted'}`} />
+                        <span className="font-black w-20 uppercase tracking-tighter">{match.platform}</span>
+                        <span className="text-muted-foreground truncate italic opacity-60">{match.details}</span>
                       </div>
                     ))}
                 </div>
@@ -444,45 +440,45 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="profile" className="mt-4">
-        <Card className="border-primary/10 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">Consolidated Subject Identity</CardTitle>
-            <CardDescription className="text-xs uppercase tracking-widest font-bold">Verified biographical data from DHA and national registers.</CardDescription>
+      <TabsContent value="profile" className="mt-6">
+        <Card className="border-2 border-primary bg-background shadow-lg">
+          <CardHeader className="border-b">
+            <CardTitle className="text-xl font-black uppercase tracking-tighter">Verified Subject Metadata</CardTitle>
+            <CardDescription className="text-[9px] uppercase tracking-[0.3em] font-bold text-muted-foreground">Intelligence Snapshot // ID: {subject.idNumber}</CardDescription>
           </CardHeader>
-          <CardContent className="grid md:grid-cols-2 gap-10">
-            <div className="space-y-8">
-              <div className="group">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 group-hover:text-primary transition-colors">Full Name</p>
-                <div className="flex items-center gap-3">
-                  <p className="text-2xl font-bold tracking-tight">{subject.name}</p>
-                  <Badge variant="outline" className="text-[9px] bg-green-500/5 text-green-500 border-green-500/20 font-bold">VERIFIED</Badge>
+          <CardContent className="grid md:grid-cols-2 gap-12 pt-8">
+            <div className="space-y-10">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Legal Full Name</p>
+                <div className="flex items-baseline gap-4">
+                  <p className="text-3xl font-black tracking-tighter">{subject.name.toUpperCase()}</p>
+                  <Badge className="text-[8px] bg-black text-white dark:bg-white dark:text-black rounded-none px-2 font-black">VERIFIED</Badge>
                 </div>
               </div>
-              <div className="group">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 group-hover:text-primary transition-colors">National ID Number</p>
-                <p className="text-xl font-mono font-bold tracking-widest">{subject.idNumber}</p>
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">National ID Identity</p>
+                <p className="text-2xl font-mono font-black tracking-[0.2em]">{subject.idNumber}</p>
               </div>
             </div>
-            <div className="space-y-8">
-              <div className="group">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 group-hover:text-primary transition-colors">Consolidated Address</p>
-                <p className="text-xl font-bold leading-tight">{subject.address}</p>
+            <div className="space-y-10">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Registered Domicile</p>
+                <p className="text-2xl font-black tracking-tighter leading-none">{subject.address.toUpperCase()}</p>
               </div>
-              <div className="group">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 group-hover:text-primary transition-colors">Primary Communication Link</p>
-                <p className="text-xl font-mono font-bold text-primary">{subject.phoneNumber}</p>
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Primary Communication Link</p>
+                <p className="text-2xl font-mono font-black text-primary tracking-tighter">{subject.phoneNumber}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </TabsContent>
 
-      <TabsContent value="background-check" className="mt-4">
+      <TabsContent value="background-check" className="mt-6">
         <BackgroundCheckForm subject={subject} />
       </TabsContent>
 
-      <TabsContent value="reports" className="mt-4">
+      <TabsContent value="reports" className="mt-6">
         <ReportsHistory reports={reports || []} isLoading={reportsLoading} />
       </TabsContent>
     </Tabs>
