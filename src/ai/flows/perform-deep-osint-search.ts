@@ -8,12 +8,11 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { performDeepOSINTDiscovery } from '@/lib/intelligence-service';
+import { performDeepOSINTDiscovery, performSherlockSearch, performHarvesterSearch } from '@/lib/intelligence-service';
 
 const DeepOSINTSearchInputSchema = z.object({
   name: z.string(),
   idNumber: z.string(),
-  previousFindings: z.array(z.any()).optional(),
 });
 
 export type DeepOSINTSearchInput = z.infer<typeof DeepOSINTSearchInputSchema>;
@@ -27,6 +26,17 @@ const DeepOSINTSearchOutputSchema = z.object({
     evidence: z.string().optional(),
     confidence: z.number().min(0).max(100),
   })),
+  sherlockResults: z.array(z.object({
+    site: z.string(),
+    exists: z.boolean(),
+    url: z.string().optional()
+  })),
+  harvesterResults: z.array(z.object({
+    source: z.string(),
+    type: z.string(),
+    value: z.string(),
+    leaked: z.boolean()
+  })),
   overallRiskScore: z.number().min(0).max(100),
 });
 
@@ -34,40 +44,49 @@ export type DeepOSINTSearchOutput = z.infer<typeof DeepOSINTSearchOutputSchema>;
 
 const deepOSINTSearchPrompt = ai.definePrompt({
   name: 'deepOSINTSearchPrompt',
-  input: {schema: DeepOSINTSearchInputSchema},
+  input: {
+    schema: z.object({
+      name: z.string(),
+      idNumber: z.string(),
+      rawSherlock: z.any(),
+      rawHarvester: z.any(),
+      rawDiscovery: z.any(),
+    })
+  },
   output: {schema: DeepOSINTSearchOutputSchema},
-  prompt: `You are an Advanced OSINT Discovery Agent.
+  prompt: `You are an Advanced OSINT Discovery Agent at Veritas Intel.
   
-  TASK: Perform a deep digital forensic search for the subject: {{{name}}} (ID: {{{idNumber}}}).
+  TASK: Synthesize the raw discovery data into a formal digital forensic dossier for: {{{name}}} (ID: {{{idNumber}}}).
   
-  CONTEXT:
-  You have access to simulated high-depth intelligence tools that mimic repositories like Sherlock (username discovery), theHarvester (email/subdomain harvesting), and global breach datasets.
+  RAW DATA SOURCES:
+  1. SHERLOCK USERNAME MODULE: {{{rawSherlock}}}
+  2. THE HARVESTER RECON MODULE: {{{rawHarvester}}}
+  3. DEEP WEB DISCOVERY: {{{rawDiscovery}}}
   
   GUIDELINES:
-  1. Synthesize the raw discovery data into a professional investigative narrative.
-  2. Highlight any "Red Flags" found in digital footprints (leaks, domain registrations, or social anomalies).
-  3. Provide a confidence score for each finding.
-  4. The "summary" should be concise but technically dense (minimum 2 paragraphs).
-  
-  INPUT DATA:
-  {{{#if previousFindings}}}
-  Previous findings to cross-reference:
-  {{#each previousFindings}}
-  - Platform: {{{this.platform}}}, Status: {{{this.status}}}, Details: {{{this.details}}}
-  {{/each}}
-  {{/if}}
+  1. Write a professional "summary" (minimum 2 paragraphs) interpreting the digital footprint.
+  2. Determine an "overallRiskScore" (0-100) based on leaked data and footprint visibility.
+  3. Ensure the "findings" array summarizes the most critical red flags or confirmations.
+  4. Preserve all site matches from Sherlock and leaks from Harvester.
   
   Analyze the digital persona and provide the final intelligence dossier.`,
 });
 
 export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promise<DeepOSINTSearchOutput> {
-  // Step 1: Trigger the "Deep Crawler" tool simulation
-  const rawFindings = await performDeepOSINTDiscovery(input.name, input.idNumber);
+  // Step 1: Run simulated GitHub modules in parallel
+  const [sherlock, harvester, discovery] = await Promise.all([
+    performSherlockSearch(input.name),
+    performHarvesterSearch(input.idNumber),
+    performDeepOSINTDiscovery(input.name, input.idNumber)
+  ]);
   
   // Step 2: Use AI to synthesize and score the findings
   const {output} = await deepOSINTSearchPrompt({
-    ...input,
-    previousFindings: rawFindings,
+    name: input.name,
+    idNumber: input.idNumber,
+    rawSherlock: JSON.stringify(sherlock),
+    rawHarvester: JSON.stringify(harvester),
+    rawDiscovery: JSON.stringify(discovery),
   });
 
   if (!output) {
@@ -76,10 +95,7 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
 
   return {
     ...output,
-    findings: output.findings.map(f => ({
-      ...f,
-      // Ensure we merge the AI's scoring with the raw simulated data where applicable
-      evidence: rawFindings.find(raw => raw.platform === f.platform)?.evidence || f.evidence
-    }))
+    sherlockResults: sherlock, // Ensure we return the raw specific results for UI mapping
+    harvesterResults: harvester
   };
 }

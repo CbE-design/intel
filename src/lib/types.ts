@@ -57,8 +57,23 @@ export interface OSINTMatch {
   confidence?: number;
 }
 
+export interface SherlockResult {
+  site: string;
+  exists: boolean;
+  url?: string;
+}
+
+export interface HarvesterResult {
+  source: string;
+  type: 'Email' | 'Domain' | 'IP';
+  value: string;
+  leaked: boolean;
+}
+
 export interface DeepSearchOutput {
   summary: string;
   findings: OSINTMatch[];
+  sherlockResults: SherlockResult[];
+  harvesterResults: HarvesterResult[];
   overallRiskScore: number;
 }

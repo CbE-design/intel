@@ -7,7 +7,7 @@
  * Inspired by OSINT repositories (Sherlock, theHarvester) and corporate registry scrapers.
  */
 
-import { type CorporateLinkage, type OSINTMatch } from './types';
+import { type CorporateLinkage, type OSINTMatch, type SherlockResult, type HarvesterResult } from './types';
 
 export type IntelligenceSourceStatus = 'Connected' | 'Error' | 'Inactive';
 
@@ -40,7 +40,6 @@ export async function testIntelligenceConnection(sourceId: string): Promise<{ su
 export async function getCorporateLinkages(idNumber: string): Promise<CorporateLinkage[]> {
   await new Promise(resolve => setTimeout(resolve, 1200));
   
-  // Seed-based randomization for consistency
   if (idNumber.includes('85') || idNumber.includes('79') || idNumber.includes('88')) {
     return [
       { companyName: 'VERITAS HOLDINGS (PTY) LTD', registrationNumber: '2018/456789/07', role: 'Director', status: 'Active', appointmentDate: '2018-05-12' },
@@ -61,10 +60,31 @@ export async function getOSINTMatches(name: string, idNumber: string): Promise<O
   ];
 }
 
+export async function performSherlockSearch(name: string): Promise<SherlockResult[]> {
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  const username = name.toLowerCase().replace(/\s/g, '');
+  const platforms = ['GitHub', 'Reddit', 'Instagram', 'Twitter', 'Pinterest', 'Medium', 'StackOverflow', 'Behance', 'Patreon', 'GitLab'];
+  
+  return platforms.map(p => ({
+    site: p,
+    exists: Math.random() > 0.5,
+    url: Math.random() > 0.5 ? `https://${p.toLowerCase()}.com/${username}` : undefined
+  }));
+}
+
+export async function performHarvesterSearch(idNumber: string): Promise<HarvesterResult[]> {
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  return [
+    { source: 'google', type: 'Email', value: `intel-${idNumber.slice(-4)}@proton.me`, leaked: true },
+    { source: 'bing', type: 'Domain', value: `veritas-${idNumber.slice(0, 4)}.co.za`, leaked: false },
+    { source: 'hunter.io', type: 'Email', value: `archive-${idNumber.slice(0, 6)}@gmail.com`, leaked: true },
+    { source: 'shodan', type: 'IP', value: '102.165.4.12', leaked: false }
+  ];
+}
+
 export async function performDeepOSINTDiscovery(name: string, idNumber: string): Promise<OSINTMatch[]> {
   await new Promise(resolve => setTimeout(resolve, 2500));
   
-  // Simulating deep discovery results from multiple "engines"
   return [
     { 
       platform: 'Dark Web Leaks (Simulated)', 
@@ -79,13 +99,6 @@ export async function performDeepOSINTDiscovery(name: string, idNumber: string):
       details: 'Cross-checked against OFAC, EU, and UN consolidated sanctions lists.', 
       evidence: 'No record found in global PEP (Politically Exposed Persons) databases.',
       confidence: 100
-    },
-    { 
-      platform: 'Domain Registrations', 
-      status: 'Match Found', 
-      details: 'Identified 2 web domains registered under this ID/Name.', 
-      evidence: 'Domain veritas-intel-mock.co.za and south-africa-investigations.co.za registered in 2022.',
-      confidence: 90
     }
   ];
 }
