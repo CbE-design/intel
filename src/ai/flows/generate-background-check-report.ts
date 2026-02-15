@@ -4,6 +4,7 @@
  * @fileOverview Official Intelligence Dossier Generation Flow
  * 
  * Synthesizes cross-referenced data into a formal dossier.
+ * Includes safety settings and tool-use optimization.
  */
 
 import {ai} from '@/ai/genkit';
@@ -45,6 +46,7 @@ const checkCriminalRecord = ai.defineTool({
     issuingAuthority: z.string(),
   }),
 }, async (input) => {
+  // Simulation logic: ID numbers starting with '8' are flagged for demo
   const isFlagged = input.idNumber.startsWith('8');
   return {
     hasRecord: isFlagged,
@@ -78,24 +80,41 @@ const generateBackgroundCheckReportPrompt = ai.definePrompt({
   input: {schema: GenerateBackgroundCheckReportInputSchema},
   output: {schema: GenerateBackgroundCheckReportOutputSchema},
   tools: [checkCriminalRecord, checkCreditHistory],
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+    ],
+  },
   prompt: `You are a Senior Intelligence Analyst at Veritas Intel.
   
   TASK: Generate a formal Intelligence Dossier for the subject: {{{subjectProfile.name}}}.
+  
+  CONTEXT:
+  Subject ID: {{{subjectProfile.idNumber}}}
+  Address: {{{subjectProfile.address}}}
   
   PARAMETERS:
   Criminal Search: {{#if backgroundCheckParameters.criminalRecordCheck}}ENABLED{{else}}DISABLED{{/if}}
   Credit Search: {{#if backgroundCheckParameters.creditHistoryCheck}}ENABLED{{else}}DISABLED{{/if}}
   
   GUIDELINES:
-  1. Use the provided tools to gather data.
+  1. Use the provided tools (checkCriminalRecord, checkCreditHistory) to gather verified data if enabled.
   2. Structure the report with professional headings (e.g., EXECUTIVE SUMMARY, FINDINGS, RISK MITIGATION).
   3. Adhere to South African legal context: {{{southAfricanRegulations}}}.
-  4. The "report" field should be a long-form professional text.
+  4. The "report" field should be a long-form professional text (minimum 3 paragraphs).
   5. The "riskAssessment" field should be a concise summary of the risk level (CLEAR, CAUTION, or CRITICAL).
-  6. Provide a "verificationScore" between 0-100 reflecting the confidence in the findings.`,
+  6. Provide a "verificationScore" between 0-100 reflecting the confidence in the findings.
+  
+  IMPORTANT: Ensure your output is a strictly valid JSON object matching the requested schema.`,
 });
 
 export async function generateBackgroundCheckReport(input: GenerateBackgroundCheckReportInput): Promise<GenerateBackgroundCheckReportOutput> {
   const {output} = await generateBackgroundCheckReportPrompt(input);
-  return output!;
+  if (!output) {
+    throw new Error('AI failed to generate a valid intelligence report.');
+  }
+  return output;
 }
