@@ -6,19 +6,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Subjects and their investigations are accessible to all authenticated investigators (including anonymous)
+    // Subjects and their investigative data are accessible to all authenticated investigators
     match /subject_profiles/{subjectProfileId} {
       allow read, write: if isSignedIn();
       
-      match /background_checks/{backgroundCheckId} {
-        allow read, write: if isSignedIn();
-        
-        match /reports/{reportId} {
-          allow read, write: if isSignedIn();
-        }
-      }
-      
-      match /location_data/{locationDataId} {
+      // Allow access to all sub-collections (background_checks, reports, location_data, audit_log)
+      match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }
