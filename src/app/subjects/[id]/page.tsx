@@ -1,8 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
-import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
+import { ChevronLeft, Loader2 } from 'lucide-react';
+import { useDoc, useMemoFirebase, useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 import { AppLayout } from '@/components/app-layout';
@@ -16,14 +16,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SubjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { isUserLoading } = useUser();
   const firestore = useFirestore();
   const [should404, setShould404] = useState(false);
   
   const subjectRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'subject_profiles', id) : null),
-    [firestore, id]
+    () => (firestore && !isUserLoading ? doc(firestore, 'subject_profiles', id) : null),
+    [firestore, id, isUserLoading]
   );
-  const { data: subject, isLoading } = useDoc<Subject>(subjectRef);
+  const { data: subject, isLoading: isDocLoading } = useDoc<Subject>(subjectRef);
+
+  const isLoading = isUserLoading || isDocLoading;
 
   // Robust 404 handling: only trigger if loading is finished and no data exists
   useEffect(() => {
@@ -75,7 +78,12 @@ export default function SubjectPage({ params }: { params: Promise<{ id: string }
         </div>
       </PageHeader>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-        {isLoading ? (
+        {isUserLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Verifying access...</span>
+          </div>
+        ) : isDocLoading ? (
             <div className="space-y-4">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-48 w-full" />

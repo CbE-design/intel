@@ -1,28 +1,3 @@
-/**
- * @file Firestore Security Rules
- * @version 2
- *
- * @description
- * This ruleset enforces a strict user-ownership model for SubjectProfiles and their related data (BackgroundChecks, Reports, LocationData).
- * It also provides limited access to external source information.
- *
- * Data Structure:
- * - /subject_profiles/{subjectProfileId}: Root collection for subject profiles.
- * - /subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}: Subcollection for background checks related to a subject.
- * - /subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}/reports/{reportId}: Subcollection for reports related to background checks.
- * - /subject_profiles/{subjectProfileId}/location_data/{locationDataId}: Subcollection for location data related to a subject.
- * - /external_sources/{externalSourceId}: Collection for external data sources.
- * - /background_check_external_sources/{backgroundCheckExternalSourceId}: Collection for the relationship between background checks and external sources.
- *
- * Key Security Decisions:
- * - User data is strictly isolated under /subject_profiles/{subjectProfileId}, accessible only by the user with the matching UID.
- * - Listing of external sources is allowed, but write operations are denied. This allows the application to fetch available integrations.
- * - All write operations require authentication.
- * - Data validation is limited to ownership checks and relational integrity (e.g., ensuring the subjectProfileId in a BackgroundCheck matches the path).
- *
- * Denormalization for Authorization:
- * - The security rules rely on path-based ownership. The `subjectProfileId` in the path is matched against `request.auth.uid` to authorize access to documents and their subcollections.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -31,82 +6,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    /**
-     * @description Controls access to SubjectProfile documents.
-     * @path /subject_profiles/{subjectProfileId}
-     * @allow (create) User with UID 'user_abc' can create a SubjectProfile with ID 'user_abc'.
-     * @allow (get, list) User with UID 'user_abc' can read their own SubjectProfile with ID 'user_abc'.
-     * @allow (update, delete) User with UID 'user_abc' can update/delete their own SubjectProfile with ID 'user_abc'.
-     * @deny (create) User with UID 'user_xyz' cannot create a SubjectProfile with ID 'user_abc'.
-     * @principle Enforces document ownership for all operations.
-     */
+    // Subjects and their investigations are accessible to all authenticated investigators (including anonymous)
     match /subject_profiles/{subjectProfileId} {
       allow read, write: if isSignedIn();
-    }
-
-    /**
-     * @description Controls access to BackgroundCheck documents within a SubjectProfile.
-     * @path /subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}
-     * @allow (create) User with UID 'user_abc' can create a BackgroundCheck under their SubjectProfile 'user_abc'.
-     * @allow (get, list) User with UID 'user_abc' can read BackgroundChecks under their SubjectProfile 'user_abc'.
-     * @allow (update, delete) User with UID 'user_abc' can update/delete BackgroundChecks under their SubjectProfile 'user_abc'.
-     * @deny (create) User with UID 'user_xyz' cannot create a BackgroundCheck under SubjectProfile 'user_abc'.
-     * @principle Enforces document ownership and parent-child relationship.
-     */
-    match /subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId} {
-      allow read, write: if isSignedIn();
-    }
-
-    /**
-     * @description Controls access to Report documents within a BackgroundCheck.
-     * @path /subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}/reports/{reportId}
-     * @allow (create) User with UID 'user_abc' can create a Report under their BackgroundCheck.
-     * @allow (get, list) User with UID 'user_abc' can read Reports under their BackgroundCheck.
-     * @allow (update, delete) User with UID 'user_abc' can update/delete Reports under their BackgroundCheck.
-     * @deny (create) User with UID 'user_xyz' cannot create a Report under SubjectProfile 'user_abc'.
-     * @principle Enforces document ownership and nested parent-child relationship.
-     */
-    match /subject_profiles/{subjectProfileId}/background_checks/{backgroundCheckId}/reports/{reportId} {
-      allow read, write: if isSignedIn();
-    }
-
-    /**
-     * @description Controls access to LocationData documents within a SubjectProfile.
-     * @path /subject_profiles/{subjectProfileId}/location_data/{locationDataId}
-     * @allow (create) User with UID 'user_abc' can create LocationData under their SubjectProfile.
-     * @allow (get, list) User with UID 'user_abc' can read LocationData under their SubjectProfile.
-     * @allow (update, delete) User with UID 'user_abc' can update/delete LocationData under their SubjectProfile.
-     * @deny (create) User with UID 'user_xyz' cannot create LocationData under SubjectProfile 'user_abc'.
-     * @principle Enforces document ownership and parent-child relationship.
-     */
-    match /subject_profiles/{subjectProfileId}/location_data/{locationDataId} {
+      
+      match /background_checks/{backgroundCheckId} {
         allow read, write: if isSignedIn();
+        
+        match /reports/{reportId} {
+          allow read, write: if isSignedIn();
+        }
+      }
+      
+      match /location_data/{locationDataId} {
+        allow read, write: if isSignedIn();
+      }
     }
 
-    /**
-     * @description Controls access to ExternalSource documents.
-     * @path /external_sources/{externalSourceId}
-     * @allow (get, list) Anyone can read the list of external sources.
-     * @deny (create, update, delete) No one can create, update, or delete external sources via the client.
-     * @principle Provides public read access, with no write access.
-     */
     match /external_sources/{externalSourceId} {
-      // Allows reading an external source
-      allow get, list: if true;
-
-      // Denies creating, updating, and deleting an external source
-      allow create, update, delete: if false;
+      allow read: if true;
+      allow write: if false;
     }
 
-    /**
-     * @description Controls access to BackgroundCheckExternalSource documents.
-     * @path /background_check_external_sources/{backgroundCheckExternalSourceId}
-     * @deny (get, list, create, update, delete) No one can access this collection directly from the client.
-     * @principle Restricts all access to BackgroundCheckExternalSource documents.
-     */
     match /background_check_external_sources/{backgroundCheckExternalSourceId} {
-      // Denies all access to this collection.
-      allow get, list, create, update, delete: if false;
+      allow read: if isSignedIn();
+      allow write: if false;
     }
   }
 }
