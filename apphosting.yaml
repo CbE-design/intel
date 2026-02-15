@@ -5,3 +5,13 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+  # Environment variables for the runtime
+  env:
+    - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      value: studio-6016715019-bae4c
+    - variable: NODE_ENV
+      value: production
+
+scripts:
+  build: npm run build
+  start: npm run start
