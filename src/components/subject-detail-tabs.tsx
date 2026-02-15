@@ -1,23 +1,28 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, FileSearch, MapPin, History } from 'lucide-react';
+import { User, FileSearch, MapPin, History, Radio } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
 import { ReportsHistory } from './reports-history';
 import type { Location, Subject } from '@/lib/types';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { collection, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [simulating, setSimulating] = useState(false);
 
   const locationsQuery = useMemoFirebase(
     () =>
       firestore
-        ? query(collection(firestore, 'subject_profiles', subject.id, 'location_data'))
+        ? query(collection(firestore, 'subject_profiles', subject.id, 'location_data'), orderBy('timestamp', 'desc'))
         : null,
     [firestore, subject.id]
   );
@@ -34,6 +39,35 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
     [firestore, subject.id]
   );
   const { data: reports, isLoading: reportsLoading } = useCollection<any>(reportsQuery);
+
+  const simulatePing = () => {
+    if (!firestore) return;
+    setSimulating(true);
+    
+    // Default to a central SA location if no points exist
+    const base = locations && locations.length > 0 
+      ? locations[0] 
+      : { lat: -26.2041, lng: 28.0473 };
+
+    // Random variation around the base point (approx 1-5km)
+    const newPoint = {
+      lat: base.lat + (Math.random() - 0.5) * 0.05,
+      lng: base.lng + (Math.random() - 0.5) * 0.05,
+      timestamp: serverTimestamp(),
+      consent: true,
+      deviceId: 'SIMULATOR-01'
+    };
+
+    const locationCol = collection(firestore, 'subject_profiles', subject.id, 'location_data');
+    addDocumentNonBlocking(locationCol, newPoint);
+
+    toast({
+      title: "Device Ping Simulated",
+      description: "New location coordinate added to history.",
+    });
+
+    setTimeout(() => setSimulating(false), 500);
+  };
 
   if (!subject) {
     return (
@@ -61,6 +95,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
           <MapPin className="mr-2 h-4 w-4" /> Location
         </TabsTrigger>
       </TabsList>
+      
       <TabsContent value="profile" className="mt-4">
         <Card>
           <CardHeader>
@@ -93,14 +128,31 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
           </CardContent>
         </Card>
       </TabsContent>
+
       <TabsContent value="background-check" className="mt-4">
         <BackgroundCheckForm subject={subject} />
       </TabsContent>
+
       <TabsContent value="reports" className="mt-4">
         <ReportsHistory reports={reports || []} isLoading={reportsLoading} />
       </TabsContent>
+
       <TabsContent value="location" className="mt-4">
-        <LocationMap locations={locations || []} />
+        <div className="flex flex-col gap-4">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-6 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-sm">Simulator Active</h3>
+                <p className="text-xs text-muted-foreground">Force a location update from the subject's device.</p>
+              </div>
+              <Button size="sm" onClick={simulatePing} disabled={simulating}>
+                <Radio className={`mr-2 h-4 w-4 ${simulating ? 'animate-pulse' : ''}`} />
+                Simulate Device Ping
+              </Button>
+            </CardContent>
+          </Card>
+          <LocationMap locations={locations || []} />
+        </div>
       </TabsContent>
     </Tabs>
   );

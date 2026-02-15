@@ -1,111 +1,104 @@
 'use client';
 
+import { useState } from 'react';
 import { AppLayout } from '@/components/app-layout';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import { ExternalLink, Database, ShieldCheck, Key, Plus } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { MOCK_SOURCES, testIntelligenceConnection, type IntelligenceSource } from '@/lib/intelligence-service';
+import { ShieldCheck, Key, Database, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function IntegrationsPage() {
-  const firestore = useFirestore();
-  const sourcesQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'external_sources')) : null),
-    [firestore]
-  );
-  const { data: sources, isLoading } = useCollection(sourcesQuery);
+  const [sources, setSources] = useState<IntelligenceSource[]>(MOCK_SOURCES);
+  const [testing, setTesting] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleTest = async (sourceId: string) => {
+    setTesting(sourceId);
+    const result = await testIntelligenceConnection(sourceId);
+    setTesting(null);
+    
+    toast({
+      variant: result.success ? 'default' : 'destructive',
+      title: result.success ? 'Connection Verified' : 'Connection Failed',
+      description: result.message,
+    });
+    
+    if (result.success) {
+      setSources(prev => prev.map(s => s.id === sourceId ? { ...s, status: 'Connected', lastSync: new Date() } : s));
+    }
+  };
 
   return (
     <AppLayout>
-      <PageHeader title="Intelligence Sources">
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add API Source
-        </Button>
-      </PageHeader>
+      <PageHeader title="Intelligence Sources" />
       <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <ShieldCheck className="h-8 w-8 text-primary" />
-                <Badge>Active</Badge>
-              </div>
-              <CardTitle className="mt-4">Google Maps API</CardTitle>
-              <CardDescription>Real-time location and geocoding services.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                <Key className="h-3 w-3" />
-                <span>••••••••••••••••</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <Database className="h-8 w-8 text-muted-foreground" />
-                <Badge variant="outline">Simulated</Badge>
-              </div>
-              <CardTitle className="mt-4">SAPS Criminal Records</CardTitle>
-              <CardDescription>Integration with national criminal database.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <a href="https://www.mie.co.za/" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-3 w-3" />
-                  Request API Key
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <Database className="h-8 w-8 text-muted-foreground" />
-                <Badge variant="outline">Simulated</Badge>
-              </div>
-              <CardTitle className="mt-4">TransUnion Credit</CardTitle>
-              <CardDescription>Financial risk and credit history verification.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <a href="https://www.transunion.co.za/" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-3 w-3" />
-                  Connect Bureau
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {sources.map((source) => (
+            <Card key={source.id} className={source.status === 'Connected' ? 'border-primary/50' : ''}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="p-2 bg-muted rounded-lg">
+                    {source.type === 'Criminal' && <ShieldCheck className="h-5 w-5 text-primary" />}
+                    {source.type === 'Credit' && <Database className="h-5 w-5 text-primary" />}
+                    {source.type === 'Identity' && <Key className="h-5 w-5 text-primary" />}
+                  </div>
+                  <Badge variant={source.status === 'Connected' ? 'default' : 'outline'}>
+                    {source.status}
+                  </Badge>
+                </div>
+                <CardTitle className="text-lg mt-4">{source.name}</CardTitle>
+                <CardDescription>{source.provider}</CardDescription>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground">
+                {source.lastSync ? (
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    Last heartbeat: {source.lastSync.toLocaleTimeString()}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-destructive">
+                    <AlertCircle className="h-3 w-3" />
+                    Configuration required
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="pt-0">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => handleTest(source.id)}
+                  disabled={testing === source.id}
+                >
+                  {testing === source.id ? (
+                    <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                  ) : (
+                    'Test Connection'
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Custom Integrations</CardTitle>
-            <CardDescription>Manage your third-party intelligence data streams.</CardDescription>
+            <CardTitle>Architecture Mapping</CardTitle>
+            <CardDescription>How Veritas Intel synthesizes external data.</CardDescription>
           </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : sources && sources.length > 0 ? (
-              <div className="rounded-md border">
-                {/* Table implementation for sources */}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Database className="h-12 w-12 text-muted-foreground opacity-20" />
-                <h3 className="mt-4 text-lg font-medium text-muted-foreground">No custom sources configured</h3>
-                <p className="mt-2 text-sm text-muted-foreground">Add external APIs to begin ingesting real-time intelligence.</p>
-              </div>
-            )}
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border p-4 bg-muted/30">
+              <h3 className="font-semibold text-sm mb-2">Integration Strategy</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Veritas Intel uses a decoupled service layer. The GenAI flows call standardized 
+                tools which interface with the Intelligence Service. This allows you to test 
+                investigative workflows using mock data today, and simply replace the service 
+                methods with actual REST calls once you have your provider API keys.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </main>
