@@ -21,6 +21,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [simulating, setSimulating] = useState(false);
+  const [activeTab, setActiveTab] = useState('dossier');
 
   const locationsQuery = useMemoFirebase(
     () =>
@@ -105,7 +106,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   };
 
   return (
-    <Tabs defaultValue="dossier" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="dossier">
           <ShieldAlert className="mr-2 h-4 w-4" /> Dossier
@@ -163,8 +164,13 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 <div className="text-center py-10 border border-dashed rounded-lg bg-background/50">
                   <ShieldAlert className="h-8 w-8 text-muted mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No Active Intelligence Cycle Detected</p>
-                  <Button variant="outline" size="sm" className="mt-4" asChild>
-                    <TabsTrigger value="background-check" className="bg-transparent border-none">Initiate Cycle</TabsTrigger>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4" 
+                    onClick={() => setActiveTab('background-check')}
+                  >
+                    Initiate Cycle
                   </Button>
                 </div>
               )}
