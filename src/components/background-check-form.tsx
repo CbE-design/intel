@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useFormStatus, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
+import { useFormStatus } from 'react-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
@@ -18,6 +19,7 @@ import { Loader2, FileText, Save } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Badge } from '@/components/ui/badge';
 
 const initialState = {};
 
