@@ -11,7 +11,7 @@ To activate the **GSM Triangulation Vector** map, you need a Google Maps API Key
 3. Create an API Key in **APIs & Services > Credentials**.
 4. Add it to your `.env` file:
    ```env
-   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_api_key_here
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyCYbIo2o2nrgFV9k9vFf1S3fp5RBeDUIHw
    ```
 
 ### 2. Intelligence Integrations

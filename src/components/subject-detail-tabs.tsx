@@ -145,7 +145,6 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
     if (!firestore) return;
     setSimulating(true);
     
-    // Create a technical movement pattern
     const base = latestLocation ? { lat: latestLocation.lat, lng: latestLocation.lng } : { lat: -26.2041, lng: 28.0473 };
     const newLat = base.lat + (Math.random() - 0.5) * 0.008;
     const newLng = base.lng + (Math.random() - 0.5) * 0.008;
@@ -342,6 +341,18 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {deepSearchState.result && (
+                  <div className="bg-black text-green-500 font-mono text-[10px] p-4 rounded border-2 border-primary/20 h-48 overflow-auto mb-4 shadow-inner">
+                    <p className="opacity-50"># Initiating Sherlock Username Discovery Module...</p>
+                    {deepSearchState.result.sherlockResults.map((res, i) => (
+                      <p key={i} className={res.exists ? "text-green-400" : "text-gray-600"}>
+                        [{res.exists ? "+" : "-"}] {res.site.padEnd(15)}: {res.exists ? `MATCH FOUND -> ${res.url}` : "NO RECORD"}
+                      </p>
+                    ))}
+                    <p className="opacity-50"># Sherlock module cycle complete.</p>
+                  </div>
+                )}
+
                 {deepSearchState.result ? (
                   <div className="space-y-6">
                     <div className="p-4 bg-background border border-primary/20 rounded-lg font-serif italic text-sm leading-relaxed shadow-sm">
@@ -354,7 +365,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                           <Terminal className="h-3 w-3" /> Sherlock Username Trace
                         </h4>
                         <div className="grid gap-2">
-                          {deepSearchState.result.sherlockResults.map((res, i) => (
+                          {deepSearchState.result.sherlockResults.slice(0, 5).map((res, i) => (
                             <div key={i} className="flex items-center justify-between text-[10px] bg-background p-2 border border-primary/5 rounded shadow-sm">
                               <span className="font-mono font-bold">{res.site}</span>
                               <Badge variant={res.exists ? 'default' : 'secondary'} className="h-4 text-[8px] px-2 rounded-sm">
