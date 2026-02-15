@@ -2,8 +2,7 @@
 
 import { generateBackgroundCheckReport, type GenerateBackgroundCheckReportInput } from '@/ai/flows/generate-background-check-report';
 import { backgroundCheckSchema } from '@/app/schemas';
-import { getSubjectById } from './data';
-import type { Report } from './types';
+import type { Report, Subject } from './types';
 import { revalidatePath } from 'next/cache';
 
 interface FormState {
@@ -11,19 +10,21 @@ interface FormState {
   error?: string;
 }
 
+/**
+ * Server action to generate an intelligence report.
+ * Accepts the full subject object to avoid unauthorized server-side Firestore reads.
+ */
 export async function generateReportAction(
-  subjectId: string,
+  subject: Subject,
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
   try {
-    // 1. Fetch subject data
-    const subject = await getSubjectById(subjectId);
     if (!subject) {
-      return { error: `Subject ID ${subjectId} not found in intelligence database.` };
+      return { error: `Subject data is missing.` };
     }
 
-    // 2. Validate parameters
+    // 1. Validate parameters from the form
     const validatedFields = backgroundCheckSchema.safeParse({
       criminalRecordCheck: formData.get('criminalRecordCheck') === 'on',
       creditHistoryCheck: formData.get('creditHistoryCheck') === 'on',
@@ -38,7 +39,7 @@ export async function generateReportAction(
       };
     }
     
-    // 3. Prepare AI Input
+    // 2. Prepare AI Input using the data passed from the client
     const input: GenerateBackgroundCheckReportInput = {
         subjectProfile: {
             name: subject.name,
@@ -54,17 +55,16 @@ export async function generateReportAction(
         southAfricanRegulations: validatedFields.data.southAfricanRegulations
     };
 
-    // 4. Run AI Intelligence Cycle
+    // 3. Run AI Intelligence Cycle
     const result = await generateBackgroundCheckReport(input);
 
-    // 5. Revalidate the subject page to show new history
-    revalidatePath(`/subjects/${subjectId}`);
+    // 4. Revalidate the path so the UI reflects the potential history update
+    revalidatePath(`/subjects/${subject.id}`);
     
     return { report: result };
 
   } catch (e: any) {
     console.error('Intelligence Cycle Failure:', e);
-    // Provide a more helpful error message based on the exception
     const message = e.message || 'An unknown error occurred during the intelligence cycle.';
     return { error: `Intelligence Check Failed: ${message}` };
   }

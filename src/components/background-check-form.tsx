@@ -55,8 +55,8 @@ function SubmitButton() {
 }
 
 export function BackgroundCheckForm({ subject }: { subject: Subject }) {
-  // Use React 19 useActionState correctly with isPending
-  const [state, formAction, isPending] = useActionState(generateReportAction.bind(null, subject.id), initialState);
+  // Pass the full subject object to the server action to avoid permission errors on the server
+  const [state, formAction, isPending] = useActionState(generateReportAction.bind(null, subject), initialState);
   const { toast } = useToast();
   const firestore = useFirestore();
   const lastSavedReportRef = useRef<string | null>(null);
@@ -72,7 +72,6 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
     },
   });
 
-  // Handle fake progress steps during the server action
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPending) {
@@ -107,7 +106,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
         employmentVerification: form.getValues('employmentVerification'),
       };
 
-      // Save Report to Firestore (Non-blocking)
+      // Save Report to Firestore on the client side where the user is authenticated
       addDocumentNonBlocking(reportsCollection, {
         ...state.report,
         timestamp: serverTimestamp(),
@@ -117,7 +116,6 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
         parameters: params
       });
 
-      // Log the action to the audit trail
       addDocumentNonBlocking(auditCollection, {
         action: 'Intelligence Cycle Completed',
         timestamp: serverTimestamp(),
