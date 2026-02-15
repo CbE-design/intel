@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -54,9 +54,36 @@ function SubmitButton() {
   );
 }
 
+/**
+ * Sanitizes an object by converting Firestore timestamps (or objects with seconds/nanoseconds)
+ * to ISO strings so they can be safely passed to Server Actions.
+ */
+function sanitizeForServer(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  const sanitized = { ...obj };
+  
+  for (const key in sanitized) {
+    const value = sanitized[key];
+    if (value && typeof value === 'object') {
+      // Check if it's a Firestore Timestamp or similar
+      if ('seconds' in value && 'nanoseconds' in value) {
+        if (typeof value.toDate === 'function') {
+          sanitized[key] = value.toDate().toISOString();
+        } else {
+          sanitized[key] = new Date(value.seconds * 1000).toISOString();
+        }
+      }
+    }
+  }
+  return sanitized;
+}
+
 export function BackgroundCheckForm({ subject }: { subject: Subject }) {
-  // Pass the full subject object to the server action to avoid permission errors on the server
-  const [state, formAction, isPending] = useActionState(generateReportAction.bind(null, subject), initialState);
+  // Sanitize the subject object to ensure no non-serializable objects (like Timestamps) 
+  // are passed across the server action boundary.
+  const plainSubject = useMemo(() => sanitizeForServer(subject), [subject]);
+  
+  const [state, formAction, isPending] = useActionState(generateReportAction.bind(null, plainSubject), initialState);
   const { toast } = useToast();
   const firestore = useFirestore();
   const lastSavedReportRef = useRef<string | null>(null);
