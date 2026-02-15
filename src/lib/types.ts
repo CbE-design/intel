@@ -70,7 +70,7 @@ export interface HarvesterResult {
   leaked: boolean;
 }
 
-export interface DeepSearchOutput {
+export interface DeepOSINTOutput {
   summary: string;
   findings: OSINTMatch[];
   sherlockResults: SherlockResult[];
