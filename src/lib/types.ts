@@ -53,4 +53,12 @@ export interface OSINTMatch {
   status: 'Match Found' | 'No Match' | 'Pending';
   link?: string;
   details?: string;
+  evidence?: string;
+  confidence?: number;
+}
+
+export interface DeepSearchOutput {
+  summary: string;
+  findings: OSINTMatch[];
+  overallRiskScore: number;
 }

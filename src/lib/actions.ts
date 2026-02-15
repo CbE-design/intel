@@ -1,6 +1,7 @@
 'use server';
 
 import { generateBackgroundCheckReport, type GenerateBackgroundCheckReportInput } from '@/ai/flows/generate-background-check-report';
+import { performDeepOSINTSearch, type DeepOSINTSearchInput, type DeepOSINTSearchOutput } from '@/ai/flows/perform-deep-osint-search';
 import { backgroundCheckSchema } from '@/app/schemas';
 import type { Report, Subject } from './types';
 import { revalidatePath } from 'next/cache';
@@ -10,9 +11,13 @@ interface FormState {
   error?: string;
 }
 
+interface DeepSearchState {
+  result?: DeepOSINTSearchOutput;
+  error?: string;
+}
+
 /**
  * Server action to generate an intelligence report.
- * Accepts the full subject object to avoid unauthorized server-side Firestore reads.
  */
 export async function generateReportAction(
   subject: Subject,
@@ -24,7 +29,6 @@ export async function generateReportAction(
       return { error: `Subject data is missing.` };
     }
 
-    // 1. Validate parameters from the form
     const validatedFields = backgroundCheckSchema.safeParse({
       criminalRecordCheck: formData.get('criminalRecordCheck') === 'on',
       creditHistoryCheck: formData.get('creditHistoryCheck') === 'on',
@@ -39,7 +43,6 @@ export async function generateReportAction(
       };
     }
     
-    // 2. Prepare AI Input using the data passed from the client
     const input: GenerateBackgroundCheckReportInput = {
         subjectProfile: {
             name: subject.name,
@@ -55,17 +58,38 @@ export async function generateReportAction(
         southAfricanRegulations: validatedFields.data.southAfricanRegulations
     };
 
-    // 3. Run AI Intelligence Cycle
     const result = await generateBackgroundCheckReport(input);
-
-    // 4. Revalidate the path so the UI reflects the potential history update
     revalidatePath(`/subjects/${subject.id}`);
     
     return { report: result };
 
   } catch (e: any) {
     console.error('Intelligence Cycle Failure:', e);
-    const message = e.message || 'An unknown error occurred during the intelligence cycle.';
-    return { error: `Intelligence Check Failed: ${message}` };
+    return { error: `Intelligence Check Failed: ${e.message || 'Unknown error'}` };
+  }
+}
+
+/**
+ * Server action to perform a Deep OSINT Discovery.
+ */
+export async function performDeepSearchAction(
+  subject: Subject,
+  prevState: DeepSearchState
+): Promise<DeepSearchState> {
+  try {
+    if (!subject) return { error: 'Subject profile missing' };
+    
+    const input: DeepOSINTSearchInput = {
+      name: subject.name,
+      idNumber: subject.idNumber
+    };
+    
+    const result = await performDeepOSINTSearch(input);
+    revalidatePath(`/subjects/${subject.id}`);
+    
+    return { result };
+  } catch (e: any) {
+    console.error('Deep Search Failure:', e);
+    return { error: `Deep Discovery Failed: ${e.message}` };
   }
 }

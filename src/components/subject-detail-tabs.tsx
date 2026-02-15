@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, FileSearch, MapPin, History, Radio, ShieldAlert, CheckCircle2, 
   AlertCircle, Terminal, Activity, ShieldCheck, Wifi, ExternalLink, 
-  Building2, Search, Briefcase, BarChart3 
+  Building2, Search, Briefcase, BarChart3, Fingerprint, Globe, Database
 } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { getCorporateLinkages, getOSINTMatches } from '@/lib/intelligence-service';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { performDeepSearchAction } from '@/lib/actions';
 
 export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const firestore = useFirestore();
@@ -32,6 +33,12 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const [corporateData, setCorporateData] = useState<CorporateLinkage[]>([]);
   const [osintData, setOsintData] = useState<OSINTMatch[]>([]);
   const [loadingIntel, setLoadingIntel] = useState(false);
+
+  // React 19 Action State for Deep OSINT Search
+  const [deepSearchState, deepSearchAction, isDeepSearching] = useActionState(
+    performDeepSearchAction.bind(null, subject),
+    {}
+  );
 
   const locationsQuery = useMemoFirebase(
     () =>
@@ -86,14 +93,35 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
     fetchIntel();
   }, [subject.idNumber, subject.name]);
 
+  useEffect(() => {
+    if (deepSearchState.result && firestore) {
+      addDocumentNonBlocking(collection(firestore, 'subject_profiles', subject.id, 'audit_log'), {
+        action: `Deep OSINT Discovery Completed. Confidence: ${deepSearchState.result.overallRiskScore}%`,
+        timestamp: serverTimestamp(),
+        analyst: 'GenAI Intelligence Agent',
+        status: 'Success'
+      });
+      toast({
+        title: "Deep Intelligence Archived",
+        description: "New digital footprint data has been successfully synthesized.",
+      });
+    }
+    if (deepSearchState.error) {
+      toast({
+        variant: 'destructive',
+        title: 'Deep Search Failed',
+        description: deepSearchState.error,
+      });
+    }
+  }, [deepSearchState, firestore, subject.id, toast]);
+
   const latestReport = reports && reports.length > 0 ? reports[0] : null;
   const latestLocation = locations && locations.length > 0 ? locations[0] : null;
 
-  // Chart data for risk trend
   const chartData = (reports || []).slice().reverse().map(r => ({
     date: r.timestamp instanceof Object && 'seconds' in r.timestamp 
       ? new Date(r.timestamp.seconds * 1000).toLocaleDateString()
-      : 'Previous',
+      : 'Prev',
     score: r.verificationScore
   }));
 
@@ -119,7 +147,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
       <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="dossier"><ShieldAlert className="mr-2 h-4 w-4" /> Dossier</TabsTrigger>
         <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" /> Profile</TabsTrigger>
-        <TabsTrigger value="osint"><Search className="mr-2 h-4 w-4" /> OSINT</TabsTrigger>
+        <TabsTrigger value="osint"><Globe className="mr-2 h-4 w-4" /> OSINT</TabsTrigger>
         <TabsTrigger value="background-check"><FileSearch className="mr-2 h-4 w-4" /> Investigation</TabsTrigger>
         <TabsTrigger value="reports"><History className="mr-2 h-4 w-4" /> Archive</TabsTrigger>
         <TabsTrigger value="location"><MapPin className="mr-2 h-4 w-4" /> Tracking</TabsTrigger>
@@ -131,7 +159,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Intelligence Snapshot</CardTitle>
-                <BarChart3 className="h-4 w-4 text-primary" />
+                <Fingerprint className="h-4 w-4 text-primary" />
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -150,7 +178,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 </div>
               </div>
 
-              {chartData.length > 1 && (
+              {chartData.length > 0 && (
                 <div className="h-[120px] w-full mt-4">
                    <ChartContainer config={{ score: { label: "Confidence", color: "hsl(var(--primary))" } }}>
                       <LineChart data={chartData}>
@@ -164,12 +192,15 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 </div>
               )}
               
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                  <span>Audit Depth</span>
-                  <span>{reports?.length || 0} Investigative Cycles Completed</span>
-                </div>
-                <Progress value={(reports?.length || 0) * 20} className="h-1.5" />
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-lg bg-background p-3 border">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Last Tracking Ping</p>
+                    <p className="text-xs font-mono">{latestLocation ? `${latestLocation.lat.toFixed(4)}, ${latestLocation.lng.toFixed(4)}` : 'No Data'}</p>
+                  </div>
+                  <div className="rounded-lg bg-background p-3 border">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Corporate Ties</p>
+                    <p className="text-xs font-bold">{corporateData.length} Identified</p>
+                  </div>
               </div>
 
               {latestReport && (
@@ -190,7 +221,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[280px] pr-4">
+              <ScrollArea className="h-[320px] pr-4">
                 <div className="space-y-4">
                   {auditLog?.map((log) => (
                     <div key={log.id} className="border-l-2 border-primary/30 pl-3 py-1 relative">
@@ -227,17 +258,6 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">ID Number</p>
                 <p className="text-lg font-mono">{subject.idNumber}</p>
               </div>
-              <div className="pt-4 border-t">
-                 <h4 className="text-[10px] font-bold uppercase mb-4 text-muted-foreground">External OSINT Links</h4>
-                 <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" asChild className="h-8 text-[10px]">
-                      <a href={`https://www.google.com/search?q="${subject.name}"`} target="_blank"><ExternalLink className="mr-2 h-3 w-3" /> Google Search</a>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 text-[10px]">
-                      <a href={`https://www.linkedin.com/search/results/all/?keywords=${subject.name}`} target="_blank"><Briefcase className="mr-2 h-3 w-3" /> LinkedIn Search</a>
-                    </Button>
-                 </div>
-              </div>
             </div>
             <div className="space-y-6">
               <div>
@@ -254,67 +274,105 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
       </TabsContent>
 
       <TabsContent value="osint" className="mt-4 space-y-4">
+        <div className="flex items-center justify-between bg-primary/5 p-4 rounded-lg border border-primary/20">
+            <div className="flex items-center gap-4">
+                <div className="p-2 bg-background rounded-full border">
+                    <Globe className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold">Deep OSINT Discovery</h3>
+                    <p className="text-xs text-muted-foreground">Crawler agents optimized for South African digital markers.</p>
+                </div>
+            </div>
+            <form action={deepSearchAction}>
+                <Button disabled={isDeepSearching}>
+                    {isDeepSearching ? <><Activity className="mr-2 h-4 w-4 animate-spin" /> Crawling...</> : <><Search className="mr-2 h-4 w-4" /> Initiate Deep Search</>}
+                </Button>
+            </form>
+        </div>
+
+        {deepSearchState.result && (
+            <Card className="border-primary/50 bg-primary/5 animate-in fade-in duration-700">
+                <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                        <Terminal className="h-4 w-4" /> Discovery Synthesis
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-sm italic leading-relaxed font-serif">"{deepSearchState.result.summary}"</p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {deepSearchState.result.findings.map((finding, idx) => (
+                            <div key={idx} className="p-3 bg-background border rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-bold uppercase text-muted-foreground">{finding.platform}</span>
+                                    <Badge variant="outline" className="text-[9px]">{finding.confidence}% CONF</Badge>
+                                </div>
+                                <p className="text-xs font-semibold mb-1">{finding.status}</p>
+                                <p className="text-[10px] text-muted-foreground leading-tight">{finding.details}</p>
+                                {finding.evidence && (
+                                    <div className="mt-2 pt-2 border-t flex items-center gap-2 text-[9px] font-mono text-primary/80">
+                                        <Database className="h-3 w-3" /> {finding.evidence}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        )}
+
         <div className="grid md:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" /> CIPC Corporate Linkages
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Building2 className="h-4 w-4 text-primary" /> CIPC Corporate Linkages
               </CardTitle>
-              <CardDescription>Directorships and shareholding identified via company registry.</CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingIntel ? (
-                <div className="flex items-center justify-center py-10"><Activity className="animate-spin text-primary" /></div>
-              ) : corporateData.length > 0 ? (
-                <div className="space-y-4">
+              {corporateData.length > 0 ? (
+                <div className="space-y-3">
                   {corporateData.map((corp, i) => (
                     <div key={i} className="rounded-lg border p-3 bg-muted/20">
                       <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-sm uppercase">{corp.companyName}</h4>
-                        <Badge variant="outline" className="text-[9px]">{corp.status}</Badge>
+                        <h4 className="font-bold text-xs uppercase">{corp.companyName}</h4>
+                        <Badge variant="outline" className="text-[8px]">{corp.status}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">Reg: {corp.registrationNumber}</p>
-                      <div className="flex justify-between items-center mt-2 text-[10px]">
+                      <p className="text-[10px] text-muted-foreground mt-1">Reg: {corp.registrationNumber}</p>
+                      <div className="flex justify-between items-center mt-2 text-[9px]">
                         <span className="font-bold text-primary">{corp.role}</span>
-                        <span className="text-muted-foreground italic">Appointed: {corp.appointmentDate}</span>
+                        <span className="text-muted-foreground italic">{corp.appointmentDate}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10 text-xs text-muted-foreground">No active corporate directorships identified.</div>
+                <div className="text-center py-6 text-[10px] text-muted-foreground">No active corporate ties identified.</div>
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5 text-primary" /> Digital Footprint Analysis
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Search className="h-4 w-4 text-primary" /> Surface Footprint
               </CardTitle>
-              <CardDescription>Synthesized search results from public digital archives.</CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingIntel ? (
-                <div className="flex items-center justify-center py-10"><Activity className="animate-spin text-primary" /></div>
-              ) : (
-                <div className="space-y-4">
-                  {osintData.map((match, i) => (
-                    <div key={i} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/10 transition-colors">
-                      <div className={`p-1.5 rounded-full ${match.status === 'Match Found' ? 'bg-primary/10' : 'bg-muted'}`}>
-                        {match.status === 'Match Found' ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                      </div>
-                      <div className="grid gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold">{match.platform}</span>
-                          <span className={`text-[8px] font-bold px-1.5 rounded ${match.status === 'Match Found' ? 'bg-green-500/10 text-green-500' : 'bg-muted text-muted-foreground'}`}>{match.status}</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-tight">{match.details}</p>
-                      </div>
+              <div className="space-y-3">
+                {osintData.map((match, i) => (
+                  <div key={i} className="flex items-start gap-3 p-2.5 border rounded-lg">
+                    <div className={`p-1.5 rounded-full ${match.status === 'Match Found' ? 'bg-primary/10' : 'bg-muted'}`}>
+                      {match.status === 'Match Found' ? <CheckCircle2 className="h-3 w-3 text-primary" /> : <AlertCircle className="h-3 w-3 text-muted-foreground" />}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="grid gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold">{match.platform}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{match.details}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
