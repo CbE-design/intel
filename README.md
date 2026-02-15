@@ -5,19 +5,17 @@ Professional security and background check management system designed for South 
 ## Setup Requirements
 
 ### 1. Google Maps Intelligence
-To activate the **GSM Triangulation Vector** map, you need a Google Maps API Key:
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Enable the **Maps JavaScript API**.
-3. Create an API Key in **APIs & Services > Credentials**.
-4. Add it to your `.env` file:
+The **GSM Triangulation Vector** map is now active using the provided API key.
+1. Google Maps JavaScript API is enabled.
+2. The key is stored in the `.env` file:
    ```env
    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyCYbIo2o2nrgFV9k9vFf1S3fp5RBeDUIHw
    ```
 
 ### 2. Intelligence Integrations
 To activate live data feeds, you can integrate with the following South African service providers:
-- **Identity & Criminal Verification**: [MIE (Managed Integrity Evaluation)](https://www.mie.co.za/) or [LexisNexis](https://www.lexisnexis.co.za/)
-- **Credit Bureau Services**: [TransUnion South Africa](https://www.transunion.co.za/) or [Experian](https://www.experian.co.za/)
+- **Identity & Criminal Verification**: [MIE (Managed Integrity Evaluation)](https://www.mie.co.za/)
+- **Credit Bureau Services**: [TransUnion South Africa](https://www.transunion.co.za/)
 - **Company & CIPC Records**: [SearchWorks](https://www.searchworks.co.za/)
 
 ## Features
