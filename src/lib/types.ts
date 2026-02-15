@@ -19,6 +19,14 @@ export type Location = {
   deviceId?: string;
 };
 
+export type AuditEntry = {
+  id: string;
+  action: string;
+  timestamp: Timestamp | Date | string;
+  analyst: string;
+  status: 'Success' | 'Warning' | 'Info';
+};
+
 export type Report = {
   report: string;
   riskAssessment: string;
