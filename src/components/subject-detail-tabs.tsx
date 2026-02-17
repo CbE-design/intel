@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, FileSearch, MapPin, History, Radio, ShieldAlert, 
   Terminal, Activity, ShieldCheck, Search, Building2,
-  Cpu, Layers, Shield, Fingerprint, Globe, MoreHorizontal
+  Cpu, Layers, Shield, Fingerprint, Globe, Mail, Phone
 } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
@@ -125,14 +125,14 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   useEffect(() => {
     if (deepSearchState.result && firestore) {
       addDocumentNonBlocking(collection(firestore, 'subject_profiles', subject.id, 'audit_log'), {
-        action: `Deep OSINT Cycle Finalized. Findings Analyzed. Risk Score: ${deepSearchState.result.overallRiskScore}`,
+        action: `Deep OSINT Cycle Finalized. findings Analyzed. Risk Score: ${deepSearchState.result.overallRiskScore}`,
         timestamp: serverTimestamp(),
         analyst: 'AI OSINT Module',
         status: 'Success'
       });
       toast({
         title: "OSINT Analysis Archived",
-        description: "Verified results from Sherlock and Harvester modules integrated.",
+        description: "Verified results from Sherlock, Harvester, and PhoneInfoga integrated.",
       });
     }
   }, [deepSearchState, firestore, subject.id, toast]);
@@ -336,7 +336,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
               <CardHeader className="pb-4 border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                    <Cpu className="h-4 w-4 text-primary" /> OSINT Intelligence Agent
+                    <Cpu className="h-4 w-4 text-primary" /> GitHub Intelligence Modules
                   </CardTitle>
                   <form action={deepSearchAction}>
                     <Button size="sm" disabled={isDeepSearching} className="rounded-none uppercase text-[10px] font-black h-8 px-4">
@@ -347,10 +347,18 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
               </CardHeader>
               <CardContent className="pt-6">
                 {mounted && deepSearchState.result && (
-                  <div className="bg-black text-white font-mono text-[9px] p-6 mb-6 overflow-auto h-48 border-l-[10px] border-primary">
+                  <div className="bg-black text-white font-mono text-[9px] p-6 mb-6 overflow-auto h-64 border-l-[10px] border-primary">
                     <p className="opacity-40 mb-2"># VERITAS INTEL TERMINAL V4.0 // AGENT_ID: OSINT_PRO</p>
-                    {deepSearchState.result.sherlockResults.map((res, i) => (
-                      <p key={i} className={res.exists ? "font-bold" : "opacity-30"}>
+                    <p className="text-primary font-bold"># RUNNING PHONEINFOGA (GSM RECON)...</p>
+                    <p>[MATCH] Carrier: {deepSearchState.result.phoneResults.carrier}</p>
+                    <p>[MATCH] Location: {deepSearchState.result.phoneResults.location}</p>
+                    <p className="text-primary font-bold mt-2"># RUNNING HOLEHE (EMAIL TRACE)...</p>
+                    {deepSearchState.result.holeheResults.map((res, i) => (
+                      <p key={`holehe-${i}`}>[{res.exists ? "MATCH" : "EMPTY"}] {res.site.toUpperCase().padEnd(15)}</p>
+                    ))}
+                    <p className="text-primary font-bold mt-2"># RUNNING SHERLOCK (USERNAME CRAWL)...</p>
+                    {deepSearchState.result.sherlockResults.slice(0, 10).map((res, i) => (
+                      <p key={`sherlock-${i}`} className={res.exists ? "font-bold" : "opacity-30"}>
                         [{res.exists ? "MATCH" : "EMPTY"}] {res.site.toUpperCase().padEnd(15)} :: {res.exists ? res.url : "NOT_FOUND"}
                       </p>
                     ))}
@@ -365,35 +373,41 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                     </div>
 
                     <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-2 tracking-[0.2em]">
-                          <Terminal className="h-3 w-3" /> SHERLOCK TRACE
-                        </h4>
-                        <div className="grid gap-2">
-                          {deepSearchState.result.sherlockResults.slice(0, 5).map((res, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 border-b bg-muted/5">
-                              <span className="text-[10px] font-black uppercase tracking-widest">{res.site}</span>
-                              <Badge variant={res.exists ? 'default' : 'outline'} className="text-[8px] rounded-none">
-                                {res.exists ? 'TARGET_LOCK' : 'NO_RECORDS'}
-                              </Badge>
-                            </div>
-                          ))}
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-2 tracking-[0.2em] mb-4">
+                            <Phone className="h-3 w-3" /> PhoneInfoga Fixed
+                          </h4>
+                          <div className="p-4 border bg-muted/5 space-y-2 text-[10px]">
+                            <div className="flex justify-between"><span>Carrier</span><span className="font-black">{deepSearchState.result.phoneResults.carrier}</span></div>
+                            <div className="flex justify-between"><span>Location</span><span className="font-black">{deepSearchState.result.phoneResults.location}</span></div>
+                            <div className="flex justify-between"><span>Type</span><span className="font-black">{deepSearchState.result.phoneResults.type}</span></div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-2 tracking-[0.2em] mb-4">
+                            <Mail className="h-3 w-3" /> Holehe Trace
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2">
+                             {deepSearchState.result.holeheResults.map((res, i) => (
+                                <div key={i} className={`p-2 border text-[9px] font-black flex justify-between items-center ${res.exists ? 'bg-primary text-primary-foreground' : 'opacity-40'}`}>
+                                  {res.site}
+                                  {res.exists && <ShieldCheck className="h-2 w-2" />}
+                                </div>
+                             ))}
+                          </div>
                         </div>
                       </div>
 
                       <div className="space-y-4">
                         <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-2 tracking-[0.2em]">
-                          <Search className="h-3 w-3" /> HARVESTER RECON
+                          <Terminal className="h-3 w-3" /> Sherlock Matches
                         </h4>
                         <div className="grid gap-2">
-                          {deepSearchState.result.harvesterResults.map((res, i) => (
-                            <div key={i} className="p-3 border-b bg-muted/5 space-y-2">
-                              <div className="flex items-center justify-between text-[8px] font-bold text-muted-foreground uppercase">
-                                <span>{res.source}</span>
-                                <span>{res.type}</span>
-                              </div>
-                              <p className="text-[10px] font-black font-mono truncate">{res.value}</p>
-                              {res.leaked && <Badge className="text-[7px] bg-destructive text-white border-none rounded-none">LEAK_MATCH</Badge>}
+                          {deepSearchState.result.sherlockResults.filter(r => r.exists).map((res, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 border-b bg-muted/5">
+                              <span className="text-[10px] font-black uppercase tracking-widest">{res.site}</span>
+                              <Badge variant="default" className="text-[8px] rounded-none">TARGET_LOCK</Badge>
                             </div>
                           ))}
                         </div>
@@ -405,7 +419,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                     <Layers className="h-16 w-16 text-muted-foreground mb-4 opacity-10" />
                     <p className="text-xs font-black uppercase tracking-[0.4em] mb-2">Engine Standby</p>
                     <p className="text-[10px] text-muted-foreground max-w-[280px] uppercase font-bold tracking-widest leading-loose">
-                      Initiate deep discovery to crawl simulated OSINT modules and synthesize digital forensic findings.
+                      Initiate deep discovery to crawl Sherlock, theHarvester, PhoneInfoga, and Holehe modules.
                     </p>
                   </div>
                 )}
@@ -416,7 +430,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
           <Card className="bg-muted/10 h-fit border border-primary">
              <CardHeader className="pb-4 border-b">
                <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                 <Globe className="h-3 w-3" /> Bureau Intel
+                 <Building2 className="h-3 w-3" /> Registry Intel
                </CardTitle>
              </CardHeader>
              <CardContent className="space-y-6 pt-6">
@@ -435,7 +449,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 </div>
 
                 <div className="space-y-4 pt-6 border-t">
-                   <h4 className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em]">Digital Matches</h4>
+                   <h4 className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em]">Identity Matches</h4>
                    {osintData.map((match, i) => (
                       <div key={i} className="flex items-center gap-4 p-3 bg-background border text-[10px]">
                         <div className={`h-2 w-2 rounded-full ${match.status === 'Match Found' ? 'bg-primary' : 'bg-muted'}`} />

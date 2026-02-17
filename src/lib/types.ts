@@ -70,10 +70,26 @@ export interface HarvesterResult {
   leaked: boolean;
 }
 
+export interface PhoneInfogaResult {
+  carrier: string;
+  location: string;
+  type: string;
+  valid: boolean;
+  inspectors: string[];
+}
+
+export interface HoleheResult {
+  site: string;
+  exists: boolean;
+  rateLimit: boolean;
+}
+
 export interface DeepOSINTOutput {
   summary: string;
   findings: OSINTMatch[];
   sherlockResults: SherlockResult[];
   harvesterResults: HarvesterResult[];
+  phoneResults?: PhoneInfogaResult;
+  holeheResults?: HoleheResult[];
   overallRiskScore: number;
 }

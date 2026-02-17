@@ -4,10 +4,17 @@
  * @fileOverview Advanced Intelligence Service
  * 
  * Simulated integration layer for South African investigative workflows.
- * Inspired by OSINT repositories (Sherlock, theHarvester) and corporate registry scrapers.
+ * Mimics high-fidelity GitHub OSINT tools: Sherlock, theHarvester, PhoneInfoga, Holehe.
  */
 
-import { type CorporateLinkage, type OSINTMatch, type SherlockResult, type HarvesterResult } from './types';
+import { 
+  type CorporateLinkage, 
+  type OSINTMatch, 
+  type SherlockResult, 
+  type HarvesterResult,
+  type PhoneInfogaResult,
+  type HoleheResult
+} from './types';
 
 export type IntelligenceSourceStatus = 'Connected' | 'Error' | 'Inactive';
 
@@ -40,7 +47,6 @@ export async function testIntelligenceConnection(sourceId: string): Promise<{ su
 export async function getCorporateLinkages(idNumber: string): Promise<CorporateLinkage[]> {
   await new Promise(resolve => setTimeout(resolve, 1200));
   
-  // South African subjects often have multiple directorships in the construction or tech sectors
   if (idNumber.includes('85') || idNumber.includes('79') || idNumber.includes('88')) {
     return [
       { companyName: 'VERITAS HOLDINGS (PTY) LTD', registrationNumber: '2018/456789/07', role: 'Director', status: 'Active', appointmentDate: '2018-05-12' },
@@ -50,15 +56,25 @@ export async function getCorporateLinkages(idNumber: string): Promise<CorporateL
   return [];
 }
 
-export async function getOSINTMatches(name: string, idNumber: string): Promise<OSINTMatch[]> {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  return [
-    { platform: 'LinkedIn', status: 'Match Found', details: `Profile identified for ${name}. Position matches reported industry.`, confidence: 95 },
-    { platform: 'Social Media (Twitter/FB)', status: 'Match Found', details: 'Active profiles identified. No extremist content flagged.', confidence: 80 },
-    { platform: 'Government Gazette', status: 'No Match', details: 'No insolvency or legal notices found in the past 10 years.', confidence: 100 },
-    { platform: 'SAPS Wanted List', status: 'No Match', details: 'Subject is not listed in active national wanted circulations.', confidence: 100 }
-  ];
+export async function performPhoneInfogaSearch(phone: string): Promise<PhoneInfogaResult> {
+  await new Promise(resolve => setTimeout(resolve, 1800));
+  return {
+    carrier: 'Vodacom South Africa',
+    location: 'Gauteng, ZA',
+    type: 'Mobile',
+    valid: true,
+    inspectors: ['Numverify', 'GoogleSearch', 'SocialScan']
+  };
+}
+
+export async function performHoleheSearch(email: string): Promise<HoleheResult[]> {
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  const sites = ['Instagram', 'Twitter', 'LinkedIn', 'Snapchat', 'Discord', 'GitHub'];
+  return sites.map(site => ({
+    site,
+    exists: Math.random() > 0.4,
+    rateLimit: false
+  }));
 }
 
 export async function performSherlockSearch(name: string): Promise<SherlockResult[]> {
