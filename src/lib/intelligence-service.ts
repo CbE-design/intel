@@ -99,7 +99,11 @@ export async function performHarvesterSearch(idNumber: string): Promise<Harveste
   ];
 }
 
-export async function performDeepOSINTDiscovery(name: string, idNumber: string): Promise<OSINTMatch[]> {
+/**
+ * Renamed to getOSINTMatches for consistency with UI imports.
+ * Synthesizes data into high-confidence OSINT matches.
+ */
+export async function getOSINTMatches(name: string, idNumber: string): Promise<OSINTMatch[]> {
   await new Promise(resolve => setTimeout(resolve, 2500));
   
   return [

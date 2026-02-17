@@ -9,7 +9,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { 
-  performDeepOSINTDiscovery, 
+  getOSINTMatches, 
   performSherlockSearch, 
   performHarvesterSearch,
   performPhoneInfogaSearch,
@@ -100,7 +100,7 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     performHarvesterSearch(input.idNumber),
     performPhoneInfogaSearch(input.phoneNumber),
     performHoleheSearch(`intel-${input.idNumber.slice(-4)}@proton.me`),
-    performDeepOSINTDiscovery(input.name, input.idNumber)
+    getOSINTMatches(input.name, input.idNumber)
   ]);
   
   // Step 2: Use AI to synthesize and score the findings
