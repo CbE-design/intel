@@ -23,6 +23,7 @@ import { getCorporateLinkages, getOSINTMatches } from '@/lib/intelligence-servic
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { performDeepSearchAction } from '@/lib/actions';
+import { format } from 'date-fns';
 
 function sanitizeForServer(obj: any): any {
   if (!obj || typeof obj !== 'object') return obj;
@@ -48,6 +49,7 @@ function sanitizeForServer(obj: any): any {
 }
 
 export function SubjectDetailTabs({ subject }: { subject: Subject }) {
+  const [mounted, setMounted] = useState(false);
   const firestore = useFirestore();
   const { toast } = useToast();
   const [simulating, setSimulating] = useState(false);
@@ -55,6 +57,10 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const [corporateData, setCorporateData] = useState<CorporateLinkage[]>([]);
   const [osintData, setOsintData] = useState<OSINTMatch[]>([]);
   const [loadingIntel, setLoadingIntel] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const plainSubject = useMemo(() => sanitizeForServer(subject), [subject]);
 
@@ -134,12 +140,15 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const latestReport = reports && reports.length > 0 ? reports[0] : null;
   const latestLocation = locations && locations.length > 0 ? locations[0] : null;
 
-  const chartData = (reports || []).slice().reverse().map(r => ({
-    date: r.timestamp instanceof Object && 'seconds' in r.timestamp 
-      ? new Date(r.timestamp.seconds * 1000).toLocaleDateString()
-      : 'Prev',
-    score: r.verificationScore
-  }));
+  const chartData = useMemo(() => {
+    if (!mounted || !reports) return [];
+    return reports.slice().reverse().map(r => ({
+      date: r.timestamp instanceof Object && 'seconds' in (r.timestamp as any) 
+        ? format(new Date((r.timestamp as any).seconds * 1000), 'MM/dd')
+        : 'Prev',
+      score: r.verificationScore
+    }));
+  }, [reports, mounted]);
 
   const simulatePing = () => {
     if (!firestore) return;
@@ -223,7 +232,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 </div>
               </div>
 
-              {chartData.length > 0 && (
+              {mounted && chartData.length > 0 && (
                 <div className="h-[120px] w-full border p-4 bg-muted/20">
                    <ChartContainer config={{ score: { label: "Confidence", color: "hsl(var(--primary))" } }}>
                       <LineChart data={chartData}>
@@ -249,7 +258,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                     <p className="text-[9px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1 tracking-widest">
                       <Radio className="h-3 w-3" /> Last Intercept
                     </p>
-                    <p className="text-sm font-mono font-black">{latestLocation ? `${latestLocation.lat.toFixed(5)}, ${latestLocation.lng.toFixed(5)}` : 'SIGNAL_ACQUIRING'}</p>
+                    <p className="text-sm font-mono font-black">{mounted && latestLocation ? `${latestLocation.lat.toFixed(5)}, ${latestLocation.lng.toFixed(5)}` : 'SIGNAL_ACQUIRING'}</p>
                   </div>
                   <div className="p-4 border bg-muted/5">
                     <p className="text-[9px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1 tracking-widest">
@@ -279,13 +288,13 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
             <CardContent className="pt-4">
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-6">
-                  {auditLog?.map((log) => (
+                  {mounted && auditLog?.map((log) => (
                     <div key={log.id} className="border-l border-white/20 dark:border-black/20 pl-4 py-1 relative">
                       <div className="absolute -left-[3px] top-2 h-1.5 w-1.5 bg-white dark:bg-black ring-2 ring-black dark:ring-white" />
                       <p className="text-[10px] font-black uppercase leading-tight tracking-tight mb-1">{log.action}</p>
                       <div className="flex items-center gap-3">
                         <span className="text-[8px] opacity-60 font-mono">
-                          {log.timestamp instanceof Object && 'seconds' in log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleTimeString() : 'RECENT'}
+                          {log.timestamp instanceof Object && 'seconds' in (log.timestamp as any) ? format(new Date((log.timestamp as any).seconds * 1000), 'HH:mm:ss') : 'RECENT'}
                         </span>
                         <Badge variant="outline" className="text-[7px] h-3 px-1 border-white/20 dark:border-black/20 uppercase text-white dark:text-black">{log.analyst}</Badge>
                       </div>
@@ -337,7 +346,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                {deepSearchState.result && (
+                {mounted && deepSearchState.result && (
                   <div className="bg-black text-white font-mono text-[9px] p-6 mb-6 overflow-auto h-48 border-l-[10px] border-primary">
                     <p className="opacity-40 mb-2"># VERITAS INTEL TERMINAL V4.0 // AGENT_ID: OSINT_PRO</p>
                     {deepSearchState.result.sherlockResults.map((res, i) => (
@@ -349,7 +358,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                   </div>
                 )}
 
-                {deepSearchState.result ? (
+                {mounted && deepSearchState.result ? (
                   <div className="space-y-8">
                     <div className="p-6 bg-muted/20 border-l-[6px] border-primary font-medium text-sm leading-relaxed italic">
                       "{deepSearchState.result.summary}"

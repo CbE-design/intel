@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import type { Location } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Radio, SignalHigh, History as HistoryIcon, AlertTriangle } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 /**
  * Safely formats a location timestamp. 
@@ -16,14 +17,16 @@ function formatLocationTime(timestamp: any): string {
   if (!timestamp) return 'Syncing...';
   
   try {
-    if (timestamp instanceof Timestamp) {
-      return timestamp.toDate().toLocaleTimeString();
-    }
-    if (timestamp instanceof Date) {
-      return timestamp.toLocaleTimeString();
-    }
-    if (typeof timestamp.seconds === 'number') {
-      return new Date(timestamp.seconds * 1000).toLocaleTimeString();
+    const date = timestamp instanceof Timestamp 
+      ? timestamp.toDate() 
+      : timestamp instanceof Date 
+        ? timestamp 
+        : typeof timestamp.seconds === 'number' 
+          ? new Date(timestamp.seconds * 1000) 
+          : null;
+    
+    if (date) {
+      return format(date, 'HH:mm:ss');
     }
   } catch (e) {
     console.error('Error formatting location time:', e);
@@ -47,7 +50,12 @@ function MapHandler({ center }: { center: { lat: number, lng: number } }) {
 }
 
 export function LocationMap({ locations }: { locations: Location[] }) {
+  const [mounted, setMounted] = useState(false);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Use the latest location as the center, or a default South African coordinate (Johannesburg)
   const latestLocation = locations && locations.length > 0 ? locations[0] : null;
@@ -119,7 +127,7 @@ export function LocationMap({ locations }: { locations: Location[] }) {
             >
               <MapHandler center={center} />
               
-              {locations?.map((location, index) => {
+              {mounted && locations?.map((location, index) => {
                 const isLatest = index === 0;
                 return (
                   <AdvancedMarker 
@@ -157,7 +165,7 @@ export function LocationMap({ locations }: { locations: Location[] }) {
             </div>
           </div>
           
-          {latestLocation && (
+          {mounted && latestLocation && (
             <div className="bg-primary/90 backdrop-blur-md border border-primary/30 p-3 rounded shadow-2xl text-[9px] font-mono text-primary-foreground w-44">
               <div className="flex items-center gap-2 mb-1">
                 <SignalHigh className="h-3 w-3" />
