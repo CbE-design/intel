@@ -51,9 +51,7 @@ export interface CorporateLinkage {
 export interface OSINTMatch {
   platform: string;
   status: 'Match Found' | 'No Match' | 'Pending';
-  link?: string;
   details?: string;
-  evidence?: string;
   confidence?: number;
 }
 

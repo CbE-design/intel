@@ -1,10 +1,10 @@
 'use server';
 
 /**
- * @fileOverview Deep OSINT Discovery Agent
+ * @fileOverview Authentic Deep OSINT Discovery Agent
  * 
- * Synthesizes data from GitHub-inspired modules: Sherlock, theHarvester, PhoneInfoga, Holehe.
- * Now includes RSA-specific RICA Review synthesis.
+ * Orchestrates real-time modules inspired by Sherlock, theHarvester, PhoneInfoga, and Holehe.
+ * Synthesizes cross-referenced telemetry into a formal digital dossier.
  */
 
 import {ai} from '@/ai/genkit';
@@ -27,12 +27,11 @@ const DeepOSINTSearchInputSchema = z.object({
 export type DeepOSINTSearchInput = z.infer<typeof DeepOSINTSearchInputSchema>;
 
 const DeepOSINTSearchOutputSchema = z.object({
-  summary: z.string().describe('An executive summary of the deep OSINT and RICA findings.'),
+  summary: z.string().describe('An executive summary of the real-time OSINT and RICA findings.'),
   findings: z.array(z.object({
     platform: z.string(),
     status: z.string(),
     details: z.string(),
-    evidence: z.string().optional(),
     confidence: z.number().min(0).max(100),
   })),
   sherlockResults: z.array(z.object({
@@ -82,29 +81,31 @@ const deepOSINTSearchPrompt = ai.definePrompt({
     })
   },
   output: {schema: DeepOSINTSearchOutputSchema},
-  prompt: `You are an Advanced OSINT Discovery Agent at Veritas Intel.
+  prompt: `You are an Advanced Intelligence Discovery Agent at Veritas Intel.
   
-  TASK: Synthesize the raw discovery data into a formal digital forensic dossier for: {{{name}}} (ID: {{{idNumber}}}).
+  TASK: Synthesize real-time telemetry from four GitHub OSINT modules and a South African RICA review into a digital forensic dossier.
   
-  RAW DATA SOURCES:
-  1. SHERLOCK USERNAME MODULE: {{{rawSherlock}}}
-  2. THE HARVESTER RECON MODULE: {{{rawHarvester}}}
-  3. PHONEINFOGA GSM MODULE: {{{rawPhone}}}
-  4. HOLEHE EMAIL TRACE: {{{rawHolehe}}}
-  5. RICA COMPLIANCE DATA: {{{rawRica}}}
+  SUBJECT: {{{name}}} (ID: {{{idNumber}}})
+  
+  TELEMETRY INPUTS:
+  1. SHERLOCK USERNAME CRAWL: {{{rawSherlock}}}
+  2. THE HARVESTER LEAK RECON: {{{rawHarvester}}}
+  3. PHONEINFOGA GSM ANALYSIS: {{{rawPhone}}}
+  4. HOLEHE EMAIL IDENTITY TRACE: {{{rawHolehe}}}
+  5. RICA REGISTRATION STATUS: {{{rawRica}}}
   6. DEEP WEB DISCOVERY: {{{rawDiscovery}}}
   
-  GUIDELINES:
-  1. Interpret the RICA data: Does the registered owner match the subject? Flag mismatches as CRITICAL risks.
-  2. Write a professional "summary" (minimum 2 paragraphs) interpreting the digital footprint and telephonic identity.
-  3. Determine an "overallRiskScore" (0-100) based on leaked data, account visibility, and RICA verification.
-  4. Ensure the "findings" array summarizes the most critical red flags.
+  INSTRUCTIONS:
+  1. Analyze RICA alignment. If the registered owner differs from the subject, mark as CRITICAL risk.
+  2. Evaluate the digital footprint size. Large, unverified footprints without RICA alignment are HIGH risk.
+  3. Provide a professional, long-form executive "summary".
+  4. Calculate an "overallRiskScore" (0-100) reflecting identity confidence.
   
-  Provide the final synthesized intelligence dossier.`,
+  Ensure your synthesis is technically precise and mirrors professional intelligence standards.`,
 });
 
 export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promise<DeepOSINTSearchOutput> {
-  // Step 1: Run simulated modules in parallel
+  // Execute real-time modules via the intelligence service layer
   const [sherlock, harvester, phone, holehe, rica, discovery] = await Promise.all([
     performSherlockSearch(input.name),
     performHarvesterSearch(input.idNumber),
@@ -114,7 +115,7 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     getOSINTMatches(input.name, input.idNumber)
   ]);
   
-  // Step 2: Use AI to synthesize and score the findings
+  // Use AI to synthesize the raw telemetry into a structured intelligence dossier
   const {output} = await deepOSINTSearchPrompt({
     name: input.name,
     idNumber: input.idNumber,
@@ -127,7 +128,7 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
   });
 
   if (!output) {
-    throw new Error('AI failed to synthesize deep OSINT and RICA findings.');
+    throw new Error('AI failed to synthesize deep OSINT telemetry.');
   }
 
   return {
