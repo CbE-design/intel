@@ -91,13 +91,30 @@ export interface RICAVerification {
   provider: string;
 }
 
+export interface BreachResult {
+  name: string;
+  domain: string;
+  breachDate: string;
+  dataClasses: string[];
+  description: string;
+}
+
+export interface NetworkIntel {
+  ip: string;
+  ports: number[];
+  os: string | null;
+  vulns: string[];
+}
+
 export interface DeepOSINTOutput {
   summary: string;
   findings: OSINTMatch[];
   sherlockResults: SherlockResult[];
   harvesterResults: HarvesterResult[];
-  phoneResults?: PhoneInfogaResult;
-  holeheResults?: HoleheResult[];
-  ricaResults?: RICAVerification;
+  phoneResults: PhoneInfogaResult;
+  holeheResults: HoleheResult[];
+  ricaResults: RICAVerification;
+  breachResults: BreachResult[];
+  networkIntel?: NetworkIntel;
   overallRiskScore: number;
 }
