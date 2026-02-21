@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, FileSearch, MapPin, History, Radio, ShieldAlert, 
   Terminal, Activity, ShieldCheck, Search, Building2,
-  Cpu, Layers, Shield, Fingerprint, Globe, Mail, Phone
+  Cpu, Layers, Shield, Fingerprint, Globe, Mail, Phone,
+  CheckCircle2, XCircle, AlertTriangle, Key
 } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
@@ -19,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getCorporateLinkages, getOSINTMatches } from '@/lib/intelligence-service';
+import { getCorporateLinkages, getOSINTMatches, performRICAReview } from '@/lib/intelligence-service';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { performDeepSearchAction } from '@/lib/actions';
@@ -56,6 +57,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const [activeTab, setActiveTab] = useState('dossier');
   const [corporateData, setCorporateData] = useState<CorporateLinkage[]>([]);
   const [osintData, setOsintData] = useState<OSINTMatch[]>([]);
+  const [ricaData, setRicaData] = useState<any>(null);
   const [loadingIntel, setLoadingIntel] = useState(false);
 
   useEffect(() => {
@@ -107,12 +109,14 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
     async function fetchIntel() {
       setLoadingIntel(true);
       try {
-        const [corp, osint] = await Promise.all([
+        const [corp, osint, rica] = await Promise.all([
           getCorporateLinkages(subject.idNumber),
-          getOSINTMatches(subject.name, subject.idNumber)
+          getOSINTMatches(subject.name, subject.idNumber),
+          performRICAReview(subject.phoneNumber, subject.idNumber)
         ]);
         setCorporateData(corp);
         setOsintData(osint);
+        setRicaData(rica);
       } catch (e) {
         console.error("Intel fetch failed", e);
       } finally {
@@ -120,19 +124,19 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
       }
     }
     fetchIntel();
-  }, [subject.idNumber, subject.name]);
+  }, [subject.idNumber, subject.name, subject.phoneNumber]);
 
   useEffect(() => {
     if (deepSearchState.result && firestore) {
       addDocumentNonBlocking(collection(firestore, 'subject_profiles', subject.id, 'audit_log'), {
-        action: `Deep OSINT Cycle Finalized. findings Analyzed. Risk Score: ${deepSearchState.result.overallRiskScore}`,
+        action: `Deep Discovery Cycle Finalized. RICA Status: ${deepSearchState.result.ricaResults?.status || 'UNKNOWN'}. Risk Score: ${deepSearchState.result.overallRiskScore}`,
         timestamp: serverTimestamp(),
         analyst: 'AI OSINT Module',
         status: 'Success'
       });
       toast({
-        title: "OSINT Analysis Archived",
-        description: "Verified results from Sherlock, Harvester, and PhoneInfoga integrated.",
+        title: "OSINT & RICA Analysis Archived",
+        description: "Telephonic identity and digital footprints synthesized.",
       });
     }
   }, [deepSearchState, firestore, subject.id, toast]);
@@ -353,11 +357,11 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                     <p>[MATCH] Carrier: {deepSearchState.result.phoneResults.carrier}</p>
                     <p>[MATCH] Location: {deepSearchState.result.phoneResults.location}</p>
                     <p className="text-primary font-bold mt-2"># RUNNING HOLEHE (EMAIL TRACE)...</p>
-                    {deepSearchState.result.holeheResults.map((res, i) => (
+                    {deepSearchState.result.holeheResults?.map((res: any, i: number) => (
                       <p key={`holehe-${i}`}>[{res.exists ? "MATCH" : "EMPTY"}] {res.site.toUpperCase().padEnd(15)}</p>
                     ))}
                     <p className="text-primary font-bold mt-2"># RUNNING SHERLOCK (USERNAME CRAWL)...</p>
-                    {deepSearchState.result.sherlockResults.slice(0, 10).map((res, i) => (
+                    {deepSearchState.result.sherlockResults.slice(0, 10).map((res: any, i: number) => (
                       <p key={`sherlock-${i}`} className={res.exists ? "font-bold" : "opacity-30"}>
                         [{res.exists ? "MATCH" : "EMPTY"}] {res.site.toUpperCase().padEnd(15)} :: {res.exists ? res.url : "NOT_FOUND"}
                       </p>
@@ -389,7 +393,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                             <Mail className="h-3 w-3" /> Holehe Trace
                           </h4>
                           <div className="grid grid-cols-2 gap-2">
-                             {deepSearchState.result.holeheResults.map((res, i) => (
+                             {deepSearchState.result.holeheResults?.map((res: any, i: number) => (
                                 <div key={i} className={`p-2 border text-[9px] font-black flex justify-between items-center ${res.exists ? 'bg-primary text-primary-foreground' : 'opacity-40'}`}>
                                   {res.site}
                                   {res.exists && <ShieldCheck className="h-2 w-2" />}
@@ -404,7 +408,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
                           <Terminal className="h-3 w-3" /> Sherlock Matches
                         </h4>
                         <div className="grid gap-2">
-                          {deepSearchState.result.sherlockResults.filter(r => r.exists).map((res, i) => (
+                          {deepSearchState.result.sherlockResults.filter((r: any) => r.exists).map((res: any, i: number) => (
                             <div key={i} className="flex items-center justify-between p-3 border-b bg-muted/5">
                               <span className="text-[10px] font-black uppercase tracking-widest">{res.site}</span>
                               <Badge variant="default" className="text-[8px] rounded-none">TARGET_LOCK</Badge>
@@ -463,7 +467,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="profile" className="mt-6">
+      <TabsContent value="profile" className="mt-6 space-y-6">
         <Card className="border-2 border-primary bg-background shadow-lg">
           <CardHeader className="border-b">
             <CardTitle className="text-xl font-black uppercase tracking-tighter">Verified Subject Metadata</CardTitle>
@@ -495,6 +499,58 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
             </div>
           </CardContent>
         </Card>
+
+        {ricaData && (
+          <Card className="border-2 border-primary bg-background overflow-hidden">
+             <CardHeader className="bg-muted/30 pb-4 border-b">
+               <div className="flex items-center justify-between">
+                 <div className="space-y-1">
+                   <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                     <ShieldCheck className="h-4 w-4 text-primary" /> RICA Compliance Dossier
+                   </CardTitle>
+                   <CardDescription className="text-[8px] uppercase font-bold text-muted-foreground tracking-widest">RSA REGULATORY FRAMEWORK - ACT NO. 70 OF 2002</CardDescription>
+                 </div>
+                 <Badge variant={ricaData.status === 'Verified' ? 'default' : 'destructive'} className="rounded-none uppercase text-[9px] font-black px-4">
+                   {ricaData.status}
+                 </Badge>
+               </div>
+             </CardHeader>
+             <CardContent className="pt-6">
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-1">
+                         <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Registered Holder</span>
+                         <p className="text-sm font-black uppercase tracking-tight">{ricaData.registeredName}</p>
+                       </div>
+                       <div className="space-y-1">
+                         <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">ID Reference</span>
+                         <p className="text-sm font-mono font-black">{ricaData.registeredId}</p>
+                       </div>
+                    </div>
+                    <div className="p-4 bg-muted/10 border-l-4 border-primary">
+                       <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1 tracking-widest">Registration Locality</p>
+                       <p className="text-xs font-medium italic">"{ricaData.registeredAddress}"</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-center border-l pl-6 space-y-4">
+                    <div className="space-y-1">
+                       <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Activation Link</span>
+                       <div className="flex items-center gap-2 text-[10px] font-black">
+                         <Activity className="h-3 w-3 text-primary" /> {ricaData.provider}
+                       </div>
+                    </div>
+                    <div className="space-y-1">
+                       <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Last Verified</span>
+                       <div className="flex items-center gap-2 text-[10px] font-black">
+                         <History className="h-3 w-3 text-primary" /> {ricaData.ricaDate}
+                       </div>
+                    </div>
+                  </div>
+                </div>
+             </CardContent>
+          </Card>
+        )}
       </TabsContent>
 
       <TabsContent value="background-check" className="mt-6">

@@ -4,6 +4,7 @@
  * @fileOverview Deep OSINT Discovery Agent
  * 
  * Synthesizes data from GitHub-inspired modules: Sherlock, theHarvester, PhoneInfoga, Holehe.
+ * Now includes RSA-specific RICA Review synthesis.
  */
 
 import {ai} from '@/ai/genkit';
@@ -13,7 +14,8 @@ import {
   performSherlockSearch, 
   performHarvesterSearch,
   performPhoneInfogaSearch,
-  performHoleheSearch
+  performHoleheSearch,
+  performRICAReview
 } from '@/lib/intelligence-service';
 
 const DeepOSINTSearchInputSchema = z.object({
@@ -25,7 +27,7 @@ const DeepOSINTSearchInputSchema = z.object({
 export type DeepOSINTSearchInput = z.infer<typeof DeepOSINTSearchInputSchema>;
 
 const DeepOSINTSearchOutputSchema = z.object({
-  summary: z.string().describe('An executive summary of the deep OSINT findings.'),
+  summary: z.string().describe('An executive summary of the deep OSINT and RICA findings.'),
   findings: z.array(z.object({
     platform: z.string(),
     status: z.string(),
@@ -54,6 +56,12 @@ const DeepOSINTSearchOutputSchema = z.object({
     site: z.string(),
     exists: z.boolean()
   })),
+  ricaResults: z.object({
+    status: z.string(),
+    registeredName: z.string(),
+    registeredId: z.string(),
+    provider: z.string(),
+  }),
   overallRiskScore: z.number().min(0).max(100),
 });
 
@@ -69,6 +77,7 @@ const deepOSINTSearchPrompt = ai.definePrompt({
       rawHarvester: z.string(),
       rawPhone: z.string(),
       rawHolehe: z.string(),
+      rawRica: z.string(),
       rawDiscovery: z.string(),
     })
   },
@@ -77,29 +86,31 @@ const deepOSINTSearchPrompt = ai.definePrompt({
   
   TASK: Synthesize the raw discovery data into a formal digital forensic dossier for: {{{name}}} (ID: {{{idNumber}}}).
   
-  RAW DATA SOURCES (GitHub Inspired Modules):
+  RAW DATA SOURCES:
   1. SHERLOCK USERNAME MODULE: {{{rawSherlock}}}
   2. THE HARVESTER RECON MODULE: {{{rawHarvester}}}
   3. PHONEINFOGA GSM MODULE: {{{rawPhone}}}
   4. HOLEHE EMAIL TRACE: {{{rawHolehe}}}
-  5. DEEP WEB DISCOVERY: {{{rawDiscovery}}}
+  5. RICA COMPLIANCE DATA: {{{rawRica}}}
+  6. DEEP WEB DISCOVERY: {{{rawDiscovery}}}
   
   GUIDELINES:
-  1. Write a professional "summary" (minimum 2 paragraphs) interpreting the digital footprint.
-  2. Determine an "overallRiskScore" (0-100) based on leaked data, account visibility, and carrier verification.
-  3. Ensure the "findings" array summarizes the most critical red flags.
-  4. Preserve key forensic matches from all modules.
+  1. Interpret the RICA data: Does the registered owner match the subject? Flag mismatches as CRITICAL risks.
+  2. Write a professional "summary" (minimum 2 paragraphs) interpreting the digital footprint and telephonic identity.
+  3. Determine an "overallRiskScore" (0-100) based on leaked data, account visibility, and RICA verification.
+  4. Ensure the "findings" array summarizes the most critical red flags.
   
   Provide the final synthesized intelligence dossier.`,
 });
 
 export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promise<DeepOSINTSearchOutput> {
-  // Step 1: Run simulated GitHub modules in parallel
-  const [sherlock, harvester, phone, holehe, discovery] = await Promise.all([
+  // Step 1: Run simulated modules in parallel
+  const [sherlock, harvester, phone, holehe, rica, discovery] = await Promise.all([
     performSherlockSearch(input.name),
     performHarvesterSearch(input.idNumber),
     performPhoneInfogaSearch(input.phoneNumber),
     performHoleheSearch(`intel-${input.idNumber.slice(-4)}@proton.me`),
+    performRICAReview(input.phoneNumber, input.idNumber),
     getOSINTMatches(input.name, input.idNumber)
   ]);
   
@@ -111,11 +122,12 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     rawHarvester: JSON.stringify(harvester),
     rawPhone: JSON.stringify(phone),
     rawHolehe: JSON.stringify(holehe),
+    rawRica: JSON.stringify(rica),
     rawDiscovery: JSON.stringify(discovery),
   });
 
   if (!output) {
-    throw new Error('AI failed to synthesize deep OSINT findings.');
+    throw new Error('AI failed to synthesize deep OSINT and RICA findings.');
   }
 
   return {
@@ -123,6 +135,7 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     sherlockResults: sherlock,
     harvesterResults: harvester,
     phoneResults: phone,
-    holeheResults: holehe
+    holeheResults: holehe,
+    ricaResults: rica
   };
 }

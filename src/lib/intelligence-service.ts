@@ -4,7 +4,7 @@
  * @fileOverview Advanced Intelligence Service
  * 
  * Simulated integration layer for South African investigative workflows.
- * Mimics high-fidelity GitHub OSINT tools: Sherlock, theHarvester, PhoneInfoga, Holehe.
+ * Mimics high-fidelity GitHub OSINT tools and RSA regulatory checks (RICA, CIPC).
  */
 
 import { 
@@ -13,7 +13,8 @@ import {
   type SherlockResult, 
   type HarvesterResult,
   type PhoneInfogaResult,
-  type HoleheResult
+  type HoleheResult,
+  type RICAVerification
 } from './types';
 
 export type IntelligenceSourceStatus = 'Connected' | 'Error' | 'Inactive';
@@ -22,7 +23,7 @@ export interface IntelligenceSource {
   id: string;
   name: string;
   provider: string;
-  type: 'Criminal' | 'Credit' | 'Identity' | 'Location' | 'Corporate' | 'OSINT';
+  type: 'Criminal' | 'Credit' | 'Identity' | 'Location' | 'Corporate' | 'OSINT' | 'RICA';
   status: IntelligenceSourceStatus;
   lastSync?: Date;
 }
@@ -32,7 +33,8 @@ export const MOCK_SOURCES: IntelligenceSource[] = [
   { id: 'src_2', name: 'TransUnion Bureau Search', provider: 'TransUnion', type: 'Credit', status: 'Connected', lastSync: new Date() },
   { id: 'src_3', name: 'CIPC Company Registry', provider: 'SearchWorks', type: 'Corporate', status: 'Connected', lastSync: new Date() },
   { id: 'src_4', name: 'Identity Verification (Home Affairs)', provider: 'LexisNexis', type: 'Identity', status: 'Connected', lastSync: new Date() },
-  { id: 'src_5', name: 'Global OSINT Crawler', provider: 'Veritas Custom (GitHub Inspired)', type: 'OSINT', status: 'Connected', lastSync: new Date() },
+  { id: 'src_5', name: 'RICA Registration Gateway', provider: 'Vodacom/MTN Portal', type: 'RICA', status: 'Connected', lastSync: new Date() },
+  { id: 'src_6', name: 'Global OSINT Crawler', provider: 'Veritas Custom (Sherlock/Harvester)', type: 'OSINT', status: 'Connected', lastSync: new Date() },
 ];
 
 export async function testIntelligenceConnection(sourceId: string): Promise<{ success: boolean; message: string }> {
@@ -42,6 +44,21 @@ export async function testIntelligenceConnection(sourceId: string): Promise<{ su
   if (!source) return { success: false, message: 'Source not found' };
   
   return { success: true, message: `Successfully authenticated with ${source.provider} API gateway.` };
+}
+
+export async function performRICAReview(phone: string, idNumber: string): Promise<RICAVerification> {
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Logic: Mock verification based on ID consistency
+  const isMatch = idNumber.length === 13;
+  return {
+    status: isMatch ? 'Verified' : 'Mismatch',
+    registeredName: isMatch ? 'Subject Name Match (Encrypted)' : 'NAME_MISMATCH_ERROR',
+    registeredId: idNumber,
+    registeredAddress: 'Registered Domicile Match',
+    ricaDate: '2022-04-15',
+    provider: 'Vodacom SA (Managed)'
+  };
 }
 
 export async function getCorporateLinkages(idNumber: string): Promise<CorporateLinkage[]> {
@@ -99,10 +116,6 @@ export async function performHarvesterSearch(idNumber: string): Promise<Harveste
   ];
 }
 
-/**
- * Finalized OSINT Discovery aggregator.
- * Synthesizes data into high-confidence OSINT matches.
- */
 export async function getOSINTMatches(name: string, idNumber: string): Promise<OSINTMatch[]> {
   await new Promise(resolve => setTimeout(resolve, 2500));
   

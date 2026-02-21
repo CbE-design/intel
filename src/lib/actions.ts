@@ -81,7 +81,8 @@ export async function performDeepSearchAction(
     
     const input: DeepOSINTSearchInput = {
       name: subject.name,
-      idNumber: subject.idNumber
+      idNumber: subject.idNumber,
+      phoneNumber: subject.phoneNumber
     };
     
     const result = await performDeepOSINTSearch(input);

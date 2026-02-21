@@ -84,6 +84,15 @@ export interface HoleheResult {
   rateLimit: boolean;
 }
 
+export interface RICAVerification {
+  status: 'Verified' | 'Unverified' | 'Mismatch';
+  registeredName: string;
+  registeredId: string;
+  registeredAddress: string;
+  ricaDate: string;
+  provider: string;
+}
+
 export interface DeepOSINTOutput {
   summary: string;
   findings: OSINTMatch[];
@@ -91,5 +100,6 @@ export interface DeepOSINTOutput {
   harvesterResults: HarvesterResult[];
   phoneResults?: PhoneInfogaResult;
   holeheResults?: HoleheResult[];
+  ricaResults?: RICAVerification;
   overallRiskScore: number;
 }
