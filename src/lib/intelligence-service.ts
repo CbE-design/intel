@@ -100,7 +100,7 @@ export async function performHarvesterSearch(idNumber: string): Promise<Harveste
 }
 
 /**
- * Renamed to getOSINTMatches for consistency with UI imports.
+ * Finalized OSINT Discovery aggregator.
  * Synthesizes data into high-confidence OSINT matches.
  */
 export async function getOSINTMatches(name: string, idNumber: string): Promise<OSINTMatch[]> {
