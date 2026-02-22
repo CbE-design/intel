@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -6,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Terminal, Send, Cpu, Globe, Search, AlertTriangle, Zap, Save, FileText, History } from 'lucide-react';
+import { Terminal, Send, Cpu, Globe, Search, AlertTriangle, Zap, Save, FileText, Trash2, LayoutPanelLeft } from 'lucide-react';
 import { performGlobalResearchAction } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
+import type { ResearchReport } from '@/lib/types';
 
 interface Message {
   role: 'user' | 'model';
@@ -21,7 +21,7 @@ interface Message {
   trendData?: any;
 }
 
-export function ResearchChat() {
+export function ResearchChat({ initialReport }: { initialReport?: ResearchReport | null }) {
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: 'model', 
@@ -34,6 +34,19 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
   const scrollRef = useRef<HTMLDivElement>(null);
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (initialReport) {
+      setMessages([
+        { 
+          role: 'model', 
+          content: `ARCHIVED DOSSIER LOADED: ${initialReport.topic.toUpperCase()}\n\n${initialReport.content}`,
+          assessment: initialReport.assessment,
+          trendData: initialReport.trendData
+        }
+      ]);
+    }
+  }, [initialReport]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -69,11 +82,13 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
   const handleSaveToArchive = (message: Message) => {
     if (!firestore || !message.content) return;
 
+    const topic = messages.find((m, i) => messages[i+1] === message)?.content || 'Untitled Research';
+
     const reportData = {
-      topic: messages.find((m, i) => messages[i+1] === message)?.content || 'Untitled Research',
+      topic: topic.slice(0, 100),
       content: message.content,
-      assessment: message.assessment,
-      trendData: message.trendData,
+      assessment: message.assessment || 'TREND_ANALYSIS',
+      trendData: message.trendData || {},
       timestamp: serverTimestamp(),
       analyst: 'Veritas Intelligence Agent'
     };
@@ -84,6 +99,13 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
       title: "Research Dossier Archived",
       description: "The findings have been saved to the centralized Intelligence Library.",
     });
+  };
+
+  const clearChat = () => {
+    setMessages([{ 
+      role: 'model', 
+      content: `GLOBAL RESEARCH TERMINAL RESET. UNRESTRICTED FORENSIC OVERRIDE ACTIVE.` 
+    }]);
   };
 
   return (
@@ -97,8 +119,10 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
             <p className="text-[8px] font-bold opacity-50 uppercase tracking-tighter">Live Intelligence Synthesis // Node: Veritas-R1</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={clearChat} className="text-[9px] h-7 rounded-none font-black uppercase border-primary">
+              <Trash2 className="h-3 w-3 mr-1.5" /> Clear Terminal
+            </Button>
             <Badge variant="outline" className="text-[9px] border-primary font-black animate-pulse">LIVE_INTEL_STREAM</Badge>
-            <Badge variant="outline" className="text-[9px] border-primary font-black bg-primary text-primary-foreground">UNRESTRICTED_FORENSIC_OVERRIDE</Badge>
           </div>
         </div>
       </CardHeader>
@@ -126,28 +150,43 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
                   <div className="whitespace-pre-wrap">{m.content}</div>
                   
                   {m.trendData && (
-                    <div className="mt-4 pt-4 border-t border-primary/20 grid grid-cols-2 gap-2 text-[9px]">
-                      {m.trendData.severity && (
-                        <div className="flex justify-between">
-                          <span className="opacity-50">SEVERITY:</span>
-                          <span className="font-black">{m.trendData.severity.toUpperCase()}</span>
-                        </div>
-                      )}
-                      {m.trendData.geographicFocus && (
-                        <div className="flex justify-between">
-                          <span className="opacity-50">LOCATION:</span>
-                          <span className="font-black">{m.trendData.geographicFocus.toUpperCase()}</span>
+                    <div className="mt-4 pt-4 border-t border-primary/20 space-y-3">
+                      <div className="grid grid-cols-2 gap-2 text-[9px]">
+                        {m.trendData.severity && (
+                          <div className="flex justify-between border-b border-primary/10 pb-1">
+                            <span className="opacity-50">SEVERITY:</span>
+                            <span className="font-black text-primary">{m.trendData.severity.toUpperCase()}</span>
+                          </div>
+                        )}
+                        {m.trendData.geographicFocus && (
+                          <div className="flex justify-between border-b border-primary/10 pb-1">
+                            <span className="opacity-50">LOCATION:</span>
+                            <span className="font-black">{m.trendData.geographicFocus.toUpperCase()}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {m.trendData.technicalIndicators && m.trendData.technicalIndicators.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[8px] font-black uppercase opacity-50">Technical Indicators (IOCs):</p>
+                          <div className="flex flex-wrap gap-1">
+                            {m.trendData.technicalIndicators.map((ioc: string, idx: number) => (
+                              <Badge key={idx} variant="outline" className="text-[7px] border-primary/30 rounded-none bg-primary/5">
+                                {ioc}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {m.role === 'model' && i > 0 && (
+                  {m.role === 'model' && i > 0 && !initialReport && (
                     <div className="mt-4 pt-4 border-t border-primary/10 flex justify-end">
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="text-[9px] h-7 rounded-none font-black uppercase"
+                        className="text-[9px] h-7 rounded-none font-black uppercase hover:bg-primary hover:text-primary-foreground transition-none"
                         onClick={() => handleSaveToArchive(m)}
                       >
                         <Save className="h-3 w-3 mr-1.5" /> Archive Findings
