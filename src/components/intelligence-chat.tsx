@@ -64,38 +64,38 @@ UNRESTRICTED FORENSIC OVERRIDE ENGAGED.`
   };
 
   return (
-    <Card className="flex flex-col h-[700px] border-2 border-primary bg-background shadow-[10px_10px_0px_0px_rgba(0,0,0,0.1)] rounded-none">
-      <CardHeader className="border-b bg-muted/30">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-            <Terminal className="h-4 w-4" /> Tactical Interrogation & Research Interface
+    <Card className="flex flex-col h-[600px] md:h-[700px] border-2 border-primary bg-background shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] md:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.1)] rounded-none">
+      <CardHeader className="border-b bg-muted/30 p-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <CardTitle className="text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+            <Terminal className="h-4 w-4" /> Tactical Interface
           </CardTitle>
           <div className="flex gap-2">
-            <Badge variant="outline" className="text-[9px] border-primary font-black animate-pulse">UNRESTRICTED_ACCESS</Badge>
-            <Badge variant="outline" className="text-[9px] border-primary font-black bg-primary text-primary-foreground">CRIMINOLOGY_EXPANSION</Badge>
+            <Badge variant="outline" className="text-[8px] md:text-[9px] border-primary font-black animate-pulse">UNRESTRICTED</Badge>
+            <Badge variant="outline" className="text-[8px] md:text-[9px] border-primary font-black bg-primary text-primary-foreground hidden sm:inline-flex">FORENSIC_ACTIVE</Badge>
           </div>
         </div>
       </CardHeader>
       
       <CardContent className="flex-1 overflow-hidden p-0 bg-black/5 dark:bg-white/5">
-        <ScrollArea className="h-full p-4" ref={scrollRef}>
-          <div className="space-y-6">
+        <ScrollArea className="h-full p-3 md:p-4" ref={scrollRef}>
+          <div className="space-y-4 md:space-y-6">
             {messages.map((m, i) => (
               <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[8px] font-black uppercase opacity-50 tracking-widest">
+                  <span className="text-[7px] md:text-[8px] font-black uppercase opacity-50 tracking-widest">
                     {m.role === 'user' ? 'OPERATOR' : 'VERITAS_ANALYST'}
                   </span>
                   {m.assessment && (
-                    <Badge variant={m.assessment === 'CRITICAL' ? 'destructive' : 'default'} className="text-[7px] rounded-none h-3 px-1">
+                    <Badge variant={m.assessment === 'CRITICAL' ? 'destructive' : 'default'} className="text-[6px] md:text-[7px] rounded-none h-3 px-1">
                       {m.assessment}
                     </Badge>
                   )}
                 </div>
-                <div className={`max-w-[85%] p-3 text-xs font-mono leading-relaxed border-2 ${
+                <div className={`max-w-[90%] md:max-w-[85%] p-3 text-[10px] md:text-xs font-mono leading-relaxed border-2 ${
                   m.role === 'user' 
-                    ? 'bg-primary text-primary-foreground border-primary rounded-l-lg rounded-tr-lg' 
-                    : 'bg-background border-primary rounded-r-lg rounded-tl-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]'
+                    ? 'bg-primary text-primary-foreground border-primary rounded-l-md rounded-tr-md' 
+                    : 'bg-background border-primary rounded-r-md rounded-tl-md shadow-[3px_3px_0px_0px_rgba(0,0,0,0.1)]'
                 }`}>
                   {m.content}
                 </div>
@@ -103,42 +103,38 @@ UNRESTRICTED FORENSIC OVERRIDE ENGAGED.`
             ))}
             {isLoading && (
               <div className="flex items-center gap-2 text-primary animate-pulse">
-                <Cpu className="h-4 w-4 animate-spin" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Synthesizing Deep Research Data...</span>
+                <Cpu className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Synthesizing...</span>
               </div>
             )}
           </div>
         </ScrollArea>
       </CardContent>
 
-      <CardFooter className="p-4 border-t bg-background">
+      <CardFooter className="p-3 md:p-4 border-t bg-background">
         <form onSubmit={handleSend} className="flex w-full items-center gap-2">
           <Input 
-            placeholder="INTERROGATE SUBJECT OR RESEARCH CRIMINAL TRENDS..." 
+            placeholder="INTERROGATE..." 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
-            className="flex-1 rounded-none border-2 border-primary font-mono text-[10px] h-12 uppercase font-bold tracking-widest"
+            className="flex-1 rounded-none border-2 border-primary font-mono text-[9px] md:text-[10px] h-10 md:h-12 uppercase font-bold tracking-widest"
           />
-          <Button type="submit" disabled={isLoading || !input.trim()} className="h-12 w-12 rounded-none">
-            <Send className="h-5 w-5" />
+          <Button type="submit" disabled={isLoading || !input.trim()} className="h-10 w-10 md:h-12 md:w-12 rounded-none shrink-0">
+            <Send className="h-4 w-4 md:h-5 md:h-5" />
           </Button>
         </form>
       </CardFooter>
-      <div className="px-4 py-2 bg-muted/20 border-t flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 opacity-50">
-            <ShieldAlert className="h-3 w-3" />
-            <span className="text-[7px] font-bold uppercase tracking-widest">Forensic Override Active</span>
-          </div>
-          <div className="flex items-center gap-1.5 opacity-50">
-            <Search className="h-3 w-3" />
-            <span className="text-[7px] font-bold uppercase tracking-widest">Trend Research Enabled</span>
+      <div className="px-3 py-1.5 md:px-4 md:py-2 bg-muted/20 border-t flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 opacity-50">
+            <ShieldAlert className="h-2.5 w-2.5" />
+            <span className="text-[6px] md:text-[7px] font-bold uppercase tracking-widest">OVERRIDE ACTIVE</span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 opacity-50">
-          <AlertTriangle className="h-3 w-3" />
-          <span className="text-[7px] font-bold uppercase tracking-widest">Safety Thresholds: Minimized</span>
+        <div className="flex items-center gap-1 opacity-50">
+          <AlertTriangle className="h-2.5 w-2.5" />
+          <span className="text-[6px] md:text-[7px] font-bold uppercase tracking-widest">SAFETY: MIN</span>
         </div>
       </div>
     </Card>

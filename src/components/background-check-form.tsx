@@ -26,29 +26,29 @@ import { sanitizeForServer } from '@/lib/utils';
 const initialState = {};
 
 const INVESTIGATIVE_STEPS = [
-  "Initializing Secure Intelligence Tunnel...",
-  "Querying DHA Identity Gateways...",
-  "Cross-referencing SAPS Criminal Record Centre...",
-  "Analyzing TransUnion Financial Risk Profile...",
-  "Verifying Professional Credentials via SAQA...",
-  "Synthesizing GenAI Risk Model...",
-  "Finalizing Dossier Archive..."
+  "Initializing Secure Tunnel...",
+  "Querying DHA Gateways...",
+  "SAPS Record Check...",
+  "Analyzing Financial Profile...",
+  "Verifying Credentials...",
+  "Synthesizing Risk Model...",
+  "Finalizing Dossier..."
 ];
 
 function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={pending} className="w-full">
+    <Button type="submit" disabled={pending} className="w-full h-12 md:h-10 uppercase text-xs font-black tracking-widest">
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Active Investigative Cycle...
+          Analyzing...
         </>
       ) : (
         <>
           <ShieldCheck className="mr-2 h-4 w-4" />
-          Initiate Full Intelligence Cycle
+          Initiate Cycle
         </>
       )}
     </Button>
@@ -56,8 +56,6 @@ function SubmitButton() {
 }
 
 export function BackgroundCheckForm({ subject }: { subject: Subject }) {
-  // Sanitize the subject object to ensure no non-serializable objects (like Timestamps) 
-  // are passed across the server action boundary.
   const plainSubject = useMemo(() => sanitizeForServer(subject), [subject]);
   
   const [state, formAction, isPending] = useActionState(generateReportAction.bind(null, plainSubject), initialState);
@@ -72,7 +70,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
       criminalRecordCheck: true,
       creditHistoryCheck: false,
       employmentVerification: true,
-      southAfricanRegulations: 'In accordance with POPIA and the National Credit Act. Requesting live verification from DHA, SAPS, and NCR registers.',
+      southAfricanRegulations: 'Compliance: POPIA / NCA. Requesting verified data.',
     },
   });
 
@@ -84,7 +82,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
           if (prev < INVESTIGATIVE_STEPS.length - 1) return prev + 1;
           return prev;
         });
-      }, 1500);
+      }, 1200);
     } else {
       setCurrentStep(0);
     }
@@ -95,7 +93,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
     if (state.error) {
       toast({
         variant: 'destructive',
-        title: 'Intelligence Analysis Failed',
+        title: 'Cycle Failed',
         description: state.error,
       });
     }
@@ -110,20 +108,19 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
         employmentVerification: form.getValues('employmentVerification'),
       };
 
-      // Save Report to Firestore on the client side where the user is authenticated
       addDocumentNonBlocking(reportsCollection, {
         ...state.report,
         timestamp: serverTimestamp(),
-        initiatedBy: 'System AI',
+        initiatedBy: 'Veritas AI',
         subjectName: subject.name,
         subjectIdNumber: subject.idNumber,
         parameters: params
       });
 
       addDocumentNonBlocking(auditCollection, {
-        action: 'Intelligence Cycle Completed',
+        action: 'Cycle Completed',
         timestamp: serverTimestamp(),
-        analyst: 'Veritas AI Agent',
+        analyst: 'System Agent',
         status: 'Success'
       });
 
@@ -131,82 +128,75 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
       
       toast({
         title: "Intelligence Archived",
-        description: "The verified findings have been added to the subject history.",
+        description: "Dossier synchronized.",
       });
     }
   }, [state.error, state.report, toast, firestore, subject.id, subject.name, subject.idNumber, form]);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
+    <div className="grid gap-4 md:gap-6 md:grid-cols-2">
+      <Card className="rounded-none border-2 border-primary shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
         <form action={formAction}>
-          <CardHeader>
-            <CardTitle>Initiate Investigation</CardTitle>
-            <CardDescription>Configure search parameters for this active intelligence cycle.</CardDescription>
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg font-black uppercase tracking-tighter">Parameters</CardTitle>
+            <CardDescription className="text-[10px]">Configure search vectors for this cycle.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0 md:pt-0">
             {isPending ? (
-              <div className="space-y-6 py-8">
-                <div className="flex flex-col items-center text-center gap-4">
-                  <Activity className="h-12 w-12 text-primary animate-pulse" />
+              <div className="space-y-4 md:space-y-6 py-4 md:py-8">
+                <div className="flex flex-col items-center text-center gap-3">
+                  <Activity className="h-8 w-8 md:h-12 md:w-12 text-primary animate-pulse" />
                   <div className="space-y-1">
-                    <p className="text-sm font-bold uppercase tracking-tighter text-primary">{INVESTIGATIVE_STEPS[currentStep]}</p>
-                    <p className="text-xs text-muted-foreground">Cycle #00{currentStep + 1} - Encryption active</p>
+                    <p className="text-[10px] md:text-sm font-bold uppercase tracking-tighter text-primary">{INVESTIGATIVE_STEPS[currentStep]}</p>
+                    <p className="text-[8px] md:text-xs text-muted-foreground uppercase">Phase #{currentStep + 1}</p>
                   </div>
                 </div>
-                <Progress value={(currentStep / (INVESTIGATIVE_STEPS.length - 1)) * 100} className="h-2" />
-                <div className="grid grid-cols-3 gap-2">
-                   <div className={`flex flex-col items-center p-2 rounded border text-[10px] ${currentStep >= 1 ? 'border-primary/50 bg-primary/5 text-primary' : 'opacity-30'}`}>
-                      <Globe className="h-4 w-4 mb-1" /> IDENTITY
+                <Progress value={(currentStep / (INVESTIGATIVE_STEPS.length - 1)) * 100} className="h-1.5" />
+                <div className="grid grid-cols-3 gap-1.5">
+                   <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 1 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
+                      <Globe className="h-3 w-3 mb-0.5" /> ID
                    </div>
-                   <div className={`flex flex-col items-center p-2 rounded border text-[10px] ${currentStep >= 2 ? 'border-primary/50 bg-primary/5 text-primary' : 'opacity-30'}`}>
-                      <Search className="h-4 w-4 mb-1" /> RECORDS
+                   <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 2 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
+                      <Search className="h-3 w-3 mb-0.5" /> S-REC
                    </div>
-                   <div className={`flex flex-col items-center p-2 rounded border text-[10px] ${currentStep >= 3 ? 'border-primary/50 bg-primary/5 text-primary' : 'opacity-30'}`}>
-                      <Database className="h-4 w-4 mb-1" /> FINANCIAL
+                   <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 3 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
+                      <Database className="h-3 w-3 mb-0.5" /> FIN
                    </div>
                 </div>
               </div>
             ) : (
               <>
-                <div className="space-y-4">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Search Vectors</Label>
-                  <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+                <div className="space-y-3">
+                  <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Vectors</Label>
+                  <div className="flex items-center space-x-2 rounded-none border-2 border-primary/20 p-3 hover:bg-muted/50 transition-colors cursor-pointer">
                     <Checkbox id="criminalRecordCheck" name="criminalRecordCheck" defaultChecked={form.getValues('criminalRecordCheck')} />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor="criminalRecordCheck" className="text-sm font-medium">Criminal Database Search</Label>
-                      <p className="text-xs text-muted-foreground">National database screening for active warrants.</p>
+                    <div className="grid gap-0.5 leading-none">
+                      <Label htmlFor="criminalRecordCheck" className="text-xs font-black uppercase tracking-tight">Criminal Search</Label>
+                      <p className="text-[9px] text-muted-foreground uppercase">SAPS CRC Gateway</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 rounded-none border-2 border-primary/20 p-3 hover:bg-muted/50 transition-colors cursor-pointer">
                     <Checkbox id="creditHistoryCheck" name="creditHistoryCheck" defaultChecked={form.getValues('creditHistoryCheck')} />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor="creditHistoryCheck" className="text-sm font-medium">Financial Bureau Search</Label>
-                      <p className="text-xs text-muted-foreground">Comprehensive financial integrity assessment.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
-                    <Checkbox id="employmentVerification" name="employmentVerification" defaultChecked={form.getValues('employmentVerification')} />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor="employmentVerification" className="text-sm font-medium">Credential Verification</Label>
-                      <p className="text-xs text-muted-foreground">Past employment and professional standing.</p>
+                    <div className="grid gap-0.5 leading-none">
+                      <Label htmlFor="creditHistoryCheck" className="text-xs font-black uppercase tracking-tight">Financial Search</Label>
+                      <p className="text-[9px] text-muted-foreground uppercase">TransUnion Bureau</p>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="southAfricanRegulations" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Legal Directive</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="southAfricanRegulations" className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Directives</Label>
                   <Textarea
                     id="southAfricanRegulations"
                     name="southAfricanRegulations"
                     defaultValue={form.getValues('southAfricanRegulations')}
-                    className="min-h-[80px] resize-none text-xs"
+                    className="min-h-[60px] md:min-h-[80px] resize-none text-[10px] rounded-none border-2"
                   />
                 </div>
               </>
             )}
           </CardContent>
           {!isPending && (
-            <CardFooter>
+            <CardFooter className="p-4 md:p-6 pt-0">
               <SubmitButton />
             </CardFooter>
           )}
@@ -214,42 +204,42 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
       </Card>
       
       {state.report ? (
-        <Card className="flex flex-col border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <CardHeader>
+        <Card className="flex flex-col border-2 border-primary bg-primary/5 animate-in fade-in slide-in-from-bottom-2 duration-500 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+          <CardHeader className="p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <CardTitle>Intelligence Output</CardTitle>
-              <Badge variant="outline" className="flex items-center gap-1 bg-background">
-                <Save className="h-3 w-3" /> ARCHIVED
+              <CardTitle className="text-base md:text-lg font-black uppercase tracking-tighter">Output</CardTitle>
+              <Badge variant="outline" className="flex items-center gap-1 bg-background text-[8px] h-5 rounded-none font-black">
+                <Save className="h-2.5 w-2.5" /> ARCHIVED
               </Badge>
             </div>
-            <CardDescription>Synthesized findings from the latest cycle.</CardDescription>
+            <CardDescription className="text-[10px]">Synthesized findings.</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 space-y-6 overflow-auto">
+          <CardContent className="flex-1 space-y-4 md:space-y-6 overflow-auto p-4 md:p-6 pt-0 md:pt-0">
             <div className="space-y-4">
-                <div className="flex items-center justify-between border-b pb-2">
-                    <span className="text-xs font-bold uppercase text-muted-foreground">Dossier Confidence</span>
-                    <span className="text-sm font-bold text-primary">{state.report.verificationScore}%</span>
+                <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
+                    <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Confidence</span>
+                    <span className="text-sm font-black text-primary">{state.report.verificationScore}%</span>
                 </div>
-                <div className="rounded-lg bg-background p-6 shadow-sm border">
-                    <h3 className="font-bold text-[10px] uppercase tracking-widest mb-4 text-muted-foreground border-b pb-2">Investigative Narrative</h3>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-serif italic text-foreground/80">{state.report.report}</p>
+                <div className="rounded-none bg-background p-4 md:p-6 shadow-sm border-2 border-primary/20">
+                    <h3 className="font-black text-[9px] uppercase tracking-widest mb-3 text-muted-foreground border-b pb-1">Narrative</h3>
+                    <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap font-serif italic text-foreground/80">{state.report.report}</p>
                 </div>
-                <div className="rounded-lg border-l-4 border-primary bg-background p-4 shadow-sm">
-                    <h3 className="font-bold text-[10px] uppercase tracking-widest mb-1 text-primary">Risk Determination</h3>
-                    <p className="text-sm font-bold">{state.report.riskAssessment}</p>
+                <div className="rounded-none border-l-4 border-primary bg-background p-3 md:p-4 shadow-sm">
+                    <h3 className="font-black text-[9px] uppercase tracking-widest mb-0.5 text-primary">Risk Factor</h3>
+                    <p className="text-xs md:text-sm font-black uppercase">{state.report.riskAssessment}</p>
                 </div>
             </div>
           </CardContent>
         </Card>
       ) : (
-         <Card className="flex items-center justify-center min-h-[400px] border-dashed">
-            <div className="text-center p-8">
-                <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <FileText className="h-8 w-8 text-muted-foreground" />
+         <Card className="flex items-center justify-center min-h-[300px] md:min-h-[400px] border-dashed rounded-none border-2">
+            <div className="text-center p-6 md:p-8">
+                <div className="mx-auto h-12 w-12 md:h-16 md:w-16 rounded-none bg-muted flex items-center justify-center mb-4">
+                  <FileText className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium">Cycle Status: Standby</h3>
-                <p className="mt-2 text-sm text-muted-foreground max-w-[250px] mx-auto">
-                  Configure search vectors and initiate the cycle to pull live data.
+                <h3 className="text-base font-black uppercase tracking-tighter">Standby</h3>
+                <p className="mt-2 text-[9px] md:text-sm text-muted-foreground max-w-[200px] mx-auto uppercase font-bold">
+                  Initiate cycle to pull live data.
                 </p>
             </div>
         </Card>
