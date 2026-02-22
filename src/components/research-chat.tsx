@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Terminal, Send, Cpu, Globe, Search, AlertTriangle, Zap, Save, FileText, Trash2, LayoutPanelLeft } from 'lucide-react';
+import { Terminal, Send, Cpu, Globe, Search, AlertTriangle, Zap, Save, FileText, Trash2, LayoutPanelLeft, ShieldAlert, Network, Target } from 'lucide-react';
 import { performGlobalResearchAction } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore } from '@/firebase';
@@ -142,29 +142,46 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
                     </Badge>
                   )}
                 </div>
-                <div className={`max-w-[90%] p-4 text-xs font-mono leading-relaxed border-2 ${
+                <div className={`max-w-[95%] p-4 text-xs font-mono leading-relaxed border-2 ${
                   m.role === 'user' 
                     ? 'bg-primary text-primary-foreground border-primary rounded-l-lg rounded-tr-lg' 
                     : 'bg-background border-primary rounded-r-lg rounded-tl-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]'
                 }`}>
-                  <div className="whitespace-pre-wrap">{m.content}</div>
+                  <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
                   
                   {m.trendData && (
-                    <div className="mt-4 pt-4 border-t border-primary/20 space-y-3">
-                      <div className="grid grid-cols-2 gap-2 text-[9px]">
-                        {m.trendData.severity && (
-                          <div className="flex justify-between border-b border-primary/10 pb-1">
-                            <span className="opacity-50">SEVERITY:</span>
-                            <span className="font-black text-primary">{m.trendData.severity.toUpperCase()}</span>
-                          </div>
-                        )}
-                        {m.trendData.geographicFocus && (
-                          <div className="flex justify-between border-b border-primary/10 pb-1">
-                            <span className="opacity-50">LOCATION:</span>
-                            <span className="font-black">{m.trendData.geographicFocus.toUpperCase()}</span>
-                          </div>
-                        )}
+                    <div className="mt-6 pt-6 border-t border-primary/20 space-y-6">
+                      <div className="grid grid-cols-2 gap-4 text-[9px]">
+                        <div className="space-y-1">
+                          <p className="opacity-50 font-black">SEVERITY INDEX:</p>
+                          <p className="font-black text-primary text-xs">{m.trendData.severity?.toUpperCase() || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="opacity-50 font-black">GEOGRAPHIC FOCUS:</p>
+                          <p className="font-black text-xs">{m.trendData.geographicFocus?.toUpperCase() || 'GLOBAL'}</p>
+                        </div>
                       </div>
+
+                      {m.trendData.vulnerabilityAssessment && (
+                        <div className="p-3 bg-muted/20 border-l-4 border-primary space-y-1">
+                           <p className="text-[8px] font-black uppercase flex items-center gap-1.5"><ShieldAlert className="h-3 w-3" /> Vulnerability Assessment</p>
+                           <p className="text-[10px] leading-tight italic">{m.trendData.vulnerabilityAssessment}</p>
+                        </div>
+                      )}
+
+                      {m.trendData.tacticalMechanics && (
+                        <div className="p-3 bg-primary/5 border rounded-none space-y-1">
+                           <p className="text-[8px] font-black uppercase flex items-center gap-1.5"><Target className="h-3 w-3" /> Tactical Mechanics</p>
+                           <p className="text-[10px] leading-relaxed">{m.trendData.tacticalMechanics}</p>
+                        </div>
+                      )}
+
+                      {m.trendData.syndicateMapping && (
+                        <div className="p-3 border-2 border-dashed space-y-1">
+                           <p className="text-[8px] font-black uppercase flex items-center gap-1.5"><Network className="h-3 w-3" /> Syndicate Mapping</p>
+                           <p className="text-[10px] leading-tight">{m.trendData.syndicateMapping}</p>
+                        </div>
+                      )}
                       
                       {m.trendData.technicalIndicators && m.trendData.technicalIndicators.length > 0 && (
                         <div className="space-y-1">
