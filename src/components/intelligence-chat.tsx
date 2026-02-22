@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Terminal, Send, Activity, ShieldAlert, Cpu, AlertTriangle } from 'lucide-react';
+import { Terminal, Send, Activity, ShieldAlert, Cpu, AlertTriangle, Search } from 'lucide-react';
 import type { Subject } from '@/lib/types';
 import { interrogateSubjectAction } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,12 @@ interface Message {
 
 export function IntelligenceChat({ subject, dossierContext }: { subject: Subject, dossierContext?: string }) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: `INTELLIGENCE TUNNEL ESTABLISHED. READY TO ANALYZE SUBJECT: ${subject.name.toUpperCase()}. PROMPT FOR CRIMINAL PATTERNS OR NETWORK VULNERABILITIES.` }
+    { 
+      role: 'model', 
+      content: `INTEL TUNNEL ACTIVE. AGENT: VERITAS_CRIMINOLOGIST_v2.1. 
+READY TO ANALYZE SUBJECT: ${subject.name.toUpperCase()} OR RESEARCH GLOBAL CRIMINAL TRENDS. 
+UNRESTRICTED FORENSIC OVERRIDE ENGAGED.` 
+    }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -59,13 +64,16 @@ export function IntelligenceChat({ subject, dossierContext }: { subject: Subject
   };
 
   return (
-    <Card className="flex flex-col h-[600px] border-2 border-primary bg-background shadow-[10px_10px_0px_0px_rgba(0,0,0,0.1)] rounded-none">
+    <Card className="flex flex-col h-[700px] border-2 border-primary bg-background shadow-[10px_10px_0px_0px_rgba(0,0,0,0.1)] rounded-none">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-center justify-between">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-            <Terminal className="h-4 w-4" /> Tactical Interrogation Interface
+            <Terminal className="h-4 w-4" /> Tactical Interrogation & Research Interface
           </CardTitle>
-          <Badge variant="outline" className="text-[9px] border-primary font-black animate-pulse">UNRESTRICTED_ACCESS</Badge>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="text-[9px] border-primary font-black animate-pulse">UNRESTRICTED_ACCESS</Badge>
+            <Badge variant="outline" className="text-[9px] border-primary font-black bg-primary text-primary-foreground">CRIMINOLOGY_EXPANSION</Badge>
+          </div>
         </div>
       </CardHeader>
       
@@ -76,7 +84,7 @@ export function IntelligenceChat({ subject, dossierContext }: { subject: Subject
               <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[8px] font-black uppercase opacity-50 tracking-widest">
-                    {m.role === 'user' ? 'OPERATOR' : 'VERITAS_AI'}
+                    {m.role === 'user' ? 'OPERATOR' : 'VERITAS_ANALYST'}
                   </span>
                   {m.assessment && (
                     <Badge variant={m.assessment === 'CRITICAL' ? 'destructive' : 'default'} className="text-[7px] rounded-none h-3 px-1">
@@ -96,7 +104,7 @@ export function IntelligenceChat({ subject, dossierContext }: { subject: Subject
             {isLoading && (
               <div className="flex items-center gap-2 text-primary animate-pulse">
                 <Cpu className="h-4 w-4 animate-spin" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Synthesizing Unrestricted Analysis...</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Synthesizing Deep Research Data...</span>
               </div>
             )}
           </div>
@@ -106,7 +114,7 @@ export function IntelligenceChat({ subject, dossierContext }: { subject: Subject
       <CardFooter className="p-4 border-t bg-background">
         <form onSubmit={handleSend} className="flex w-full items-center gap-2">
           <Input 
-            placeholder="INTERROGATE SUBJECT METADATA..." 
+            placeholder="INTERROGATE SUBJECT OR RESEARCH CRIMINAL TRENDS..." 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
@@ -117,10 +125,16 @@ export function IntelligenceChat({ subject, dossierContext }: { subject: Subject
           </Button>
         </form>
       </CardFooter>
-      <div className="px-4 py-2 bg-muted/20 border-t flex items-center gap-4">
-        <div className="flex items-center gap-1.5 opacity-50">
-          <ShieldAlert className="h-3 w-3" />
-          <span className="text-[7px] font-bold uppercase tracking-widest">Security Override Active</span>
+      <div className="px-4 py-2 bg-muted/20 border-t flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 opacity-50">
+            <ShieldAlert className="h-3 w-3" />
+            <span className="text-[7px] font-bold uppercase tracking-widest">Forensic Override Active</span>
+          </div>
+          <div className="flex items-center gap-1.5 opacity-50">
+            <Search className="h-3 w-3" />
+            <span className="text-[7px] font-bold uppercase tracking-widest">Trend Research Enabled</span>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 opacity-50">
           <AlertTriangle className="h-3 w-3" />
