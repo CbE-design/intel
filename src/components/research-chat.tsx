@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Terminal, Send, Cpu, Globe, Search, AlertTriangle, Zap, Save, FileText, Trash2, LayoutPanelLeft, ShieldAlert, Network, Target } from 'lucide-react';
+import { Terminal, Send, Cpu, Globe, Search, AlertTriangle, Zap, Save, FileText, Trash2, LayoutPanelLeft, ShieldAlert, Network, Target, Map } from 'lucide-react';
 import { performGlobalResearchAction } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore } from '@/firebase';
@@ -82,7 +82,9 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
   const handleSaveToArchive = (message: Message) => {
     if (!firestore || !message.content) return;
 
-    const topic = messages.find((m, i) => messages[i+1] === message)?.content || 'Untitled Research';
+    // Try to find a topic from the preceding user message
+    const msgIndex = messages.indexOf(message);
+    const topic = msgIndex > 0 ? messages[msgIndex - 1].content : 'Untitled Research';
 
     const reportData = {
       topic: topic.slice(0, 100),
@@ -182,6 +184,13 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
                            <p className="text-[10px] leading-tight">{m.trendData.syndicateMapping}</p>
                         </div>
                       )}
+
+                      {m.trendData.geopoliticalContext && (
+                        <div className="p-3 bg-muted/30 border rounded-none space-y-1">
+                           <p className="text-[8px] font-black uppercase flex items-center gap-1.5"><Map className="h-3 w-3" /> Geopolitical Context</p>
+                           <p className="text-[10px] leading-tight opacity-80">{m.trendData.geopoliticalContext}</p>
+                        </div>
+                      )}
                       
                       {m.trendData.technicalIndicators && m.trendData.technicalIndicators.length > 0 && (
                         <div className="space-y-1">
@@ -226,7 +235,7 @@ UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS,
       <CardFooter className="p-4 border-t bg-background">
         <form onSubmit={handleSend} className="flex w-full items-center gap-2">
           <Input 
-            placeholder="RESEARCH CRIMINAL TRENDS, MODUS OPERANDI, OR GLOBAL SYNDICATES..." 
+            placeholder="RESEARCH GLOBAL CRIMINAL TRENDS, MODUS OPERANDI, OR SYNDICATES..." 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
