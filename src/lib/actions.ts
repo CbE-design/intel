@@ -102,7 +102,7 @@ export async function performDeepSearchAction(
 }
 
 /**
- * Server action for the Intelligence Chat.
+ * Server action for the Intelligence Chat (Subject Interrogation).
  */
 export async function interrogateSubjectAction(
   subject: Subject,
@@ -128,5 +128,24 @@ export async function interrogateSubjectAction(
   } catch (e: any) {
     console.error('Interrogation Failure:', e);
     return { error: `Handshake Denied: ${e.message}` };
+  }
+}
+
+/**
+ * Server action for Global Criminological Research (Unrestricted).
+ */
+export async function performGlobalResearchAction(
+  message: string
+): Promise<ChatState> {
+  try {
+    const input: IntelligenceChatInput = {
+      message,
+    };
+    
+    const result = await chatWithIntelligence(input);
+    return { response: result };
+  } catch (e: any) {
+    console.error('Research Failure:', e);
+    return { error: `Research Handshake Denied: ${e.message}` };
   }
 }

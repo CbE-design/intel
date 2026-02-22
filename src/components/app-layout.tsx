@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, LayoutDashboard, Settings, ShieldCheck, Terminal } from 'lucide-react';
+import { Users, LayoutDashboard, Settings, ShieldCheck, Terminal, Globe } from 'lucide-react';
 
 import {
   SidebarProvider,
@@ -15,7 +15,6 @@ import {
   SidebarInset,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Logo } from '@/components/icons';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -46,6 +45,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/subjects">
                   <Users className="size-5" />
                   <span>Registry</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Research Terminal" isActive={pathname === '/research'} className="h-12 rounded-none uppercase text-[10px] font-black tracking-widest hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-none">
+                <Link href="/research">
+                  <Globe className="size-5" />
+                  <span>Research Hub</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
