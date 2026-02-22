@@ -7,10 +7,10 @@ Professional security intelligence and real-time OSINT management system designe
 ### 1. Active Intelligence Gateways
 Veritas Intel implements a **Service Gateway Pattern** to connect with real-time OSINT repositories and regulatory databases. For 100% authenticity, configure your service endpoints to point to Dockerized tool instances or authorized API gateways:
 
-- **[Sherlock](https://github.com/sherlock-project/sherlock)**: username discovery.
+- **[Sherlock](https://github.com/sherlock-project/sherlock)**: username discovery across 350+ platforms.
 - **[theHarvester](https://github.com/laramies/theHarvester)**: credential and domain recon.
 - **[PhoneInfoga](https://github.com/sundowndev/phoneinfoga)**: GSM carrier and triangulation telemetry.
-- **[Holehe](https://github.com/megadose/holehe)**: email account linkage.
+- **[Holehe](https://github.com/megadose/holehe)**: email account linkage check.
 - **Have I Been Pwned / LeakCheck**: Real-time credential breach monitoring.
 
 ### 2. South African Regulatory Access

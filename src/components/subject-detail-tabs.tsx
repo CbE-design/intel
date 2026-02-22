@@ -108,6 +108,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
 
   useEffect(() => {
     async function fetchIntel() {
+      if (!mounted) return;
       setLoadingIntel(true);
       try {
         const [corp, osint, rica] = await Promise.all([
@@ -125,7 +126,7 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
       }
     }
     fetchIntel();
-  }, [subject.idNumber, subject.name, subject.phoneNumber]);
+  }, [subject.idNumber, subject.name, subject.phoneNumber, mounted]);
 
   useEffect(() => {
     if (deepSearchState.result && firestore) {
