@@ -7,7 +7,8 @@ import {
   User, FileSearch, MapPin, History, Radio, ShieldAlert, 
   Terminal, Activity, ShieldCheck, Search, Building2,
   Cpu, Layers, Shield, Fingerprint, Globe, Mail, Phone,
-  Database, Zap, AlertTriangle, Key, Server, MessageSquareQuote
+  Database, Zap, AlertTriangle, Key, Server, MessageSquareQuote,
+  Scale
 } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
@@ -167,32 +168,39 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-7 h-12 bg-black/10 dark:bg-white/5 p-1 rounded-none border-y">
-        <TabsTrigger value="dossier" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
-          <ShieldAlert className="mr-2 h-3 w-3" /> Dossier
+      <TabsList className="grid w-full grid-cols-8 h-12 bg-black/10 dark:bg-white/5 p-1 rounded-none border-y">
+        <TabsTrigger value="dossier" className="rounded-none uppercase text-[9px] font-bold tracking-widest">
+          <ShieldAlert className="mr-1.5 h-3 w-3" /> Dossier
         </TabsTrigger>
-        <TabsTrigger value="interrogate" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
-          <MessageSquareQuote className="mr-2 h-3 w-3" /> Interrogate
+        <TabsTrigger value="interrogate" className="rounded-none uppercase text-[9px] font-bold tracking-widest">
+          <MessageSquareQuote className="mr-1.5 h-3 w-3" /> Interrogate
         </TabsTrigger>
-        <TabsTrigger value="profile" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
-          <User className="mr-2 h-3 w-3" /> Identity
+        <TabsTrigger value="deep-research" className="rounded-none uppercase text-[9px] font-bold tracking-widest bg-primary/10 text-primary">
+          <Scale className="mr-1.5 h-3 w-3" /> Deep Research
         </TabsTrigger>
-        <TabsTrigger value="osint" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
-          <Globe className="mr-2 h-3 w-3" /> Active OSINT
+        <TabsTrigger value="profile" className="rounded-none uppercase text-[9px] font-bold tracking-widest">
+          <User className="mr-1.5 h-3 w-3" /> Identity
         </TabsTrigger>
-        <TabsTrigger value="background-check" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
-          <FileSearch className="mr-2 h-3 w-3" /> Investigation
+        <TabsTrigger value="osint" className="rounded-none uppercase text-[9px] font-bold tracking-widest">
+          <Globe className="mr-1.5 h-3 w-3" /> OSINT
         </TabsTrigger>
-        <TabsTrigger value="reports" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
-          <History className="mr-2 h-3 w-3" /> Archive
+        <TabsTrigger value="background-check" className="rounded-none uppercase text-[9px] font-bold tracking-widest">
+          <FileSearch className="mr-1.5 h-3 w-3" /> Investigation
         </TabsTrigger>
-        <TabsTrigger value="location" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
-          <MapPin className="mr-2 h-3 w-3" /> Vector
+        <TabsTrigger value="reports" className="rounded-none uppercase text-[9px] font-bold tracking-widest">
+          <History className="mr-1.5 h-3 w-3" /> Archive
+        </TabsTrigger>
+        <TabsTrigger value="location" className="rounded-none uppercase text-[9px] font-bold tracking-widest">
+          <MapPin className="mr-1.5 h-3 w-3" /> Vector
         </TabsTrigger>
       </TabsList>
       
       <TabsContent value="interrogate" className="mt-6">
         <IntelligenceChat subject={subject} dossierContext={currentDossierContext} />
+      </TabsContent>
+
+      <TabsContent value="deep-research" className="mt-6">
+        <IntelligenceChat subject={subject} dossierContext={`${currentDossierContext}\nTask: Conduct exhaustive criminological research on potential criminal associations and MO patterns relevant to this profile.`} />
       </TabsContent>
 
       <TabsContent value="dossier" className="mt-6 space-y-6">
