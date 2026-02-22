@@ -27,29 +27,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { performDeepSearchAction } from '@/lib/actions';
 import { format } from 'date-fns';
-
-function sanitizeForServer(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
-  const sanitized = { ...obj };
-  
-  for (const key in sanitized) {
-    const value = sanitized[key];
-    if (value && typeof value === 'object') {
-      if ('seconds' in value && 'nanoseconds' in value) {
-        if (typeof value.toDate === 'function') {
-          sanitized[key] = value.toDate().toISOString();
-        } else {
-          sanitized[key] = new Date(value.seconds * 1000).toISOString();
-        }
-      } else if (Array.isArray(value)) {
-        sanitized[key] = value.map(item => sanitizeForServer(item));
-      } else {
-        sanitized[key] = sanitizeForServer(value);
-      }
-    }
-  }
-  return sanitized;
-}
+import { sanitizeForServer } from '@/lib/utils';
 
 export function SubjectDetailTabs({ subject }: { subject: Subject }) {
   const [mounted, setMounted] = useState(false);

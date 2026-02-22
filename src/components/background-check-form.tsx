@@ -21,6 +21,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { sanitizeForServer } from '@/lib/utils';
 
 const initialState = {};
 
@@ -52,30 +53,6 @@ function SubmitButton() {
       )}
     </Button>
   );
-}
-
-/**
- * Sanitizes an object by converting Firestore timestamps (or objects with seconds/nanoseconds)
- * to ISO strings so they can be safely passed to Server Actions.
- */
-function sanitizeForServer(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
-  const sanitized = { ...obj };
-  
-  for (const key in sanitized) {
-    const value = sanitized[key];
-    if (value && typeof value === 'object') {
-      // Check if it's a Firestore Timestamp or similar
-      if ('seconds' in value && 'nanoseconds' in value) {
-        if (typeof value.toDate === 'function') {
-          sanitized[key] = value.toDate().toISOString();
-        } else {
-          sanitized[key] = new Date(value.seconds * 1000).toISOString();
-        }
-      }
-    }
-  }
-  return sanitized;
 }
 
 export function BackgroundCheckForm({ subject }: { subject: Subject }) {

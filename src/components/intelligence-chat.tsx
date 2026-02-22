@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Terminal, Send, Activity, ShieldAlert, Cpu, AlertTriangle } from 'lucid
 import type { Subject } from '@/lib/types';
 import { interrogateSubjectAction } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
+import { sanitizeForServer } from '@/lib/utils';
 
 interface Message {
   role: 'user' | 'model';
@@ -23,6 +24,9 @@ export function IntelligenceChat({ subject, dossierContext }: { subject: Subject
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Pre-sanitize the subject for server action safety
+  const plainSubject = useMemo(() => sanitizeForServer(subject), [subject]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -39,7 +43,7 @@ export function IntelligenceChat({ subject, dossierContext }: { subject: Subject
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
-    const result = await interrogateSubjectAction(subject, userMessage, dossierContext);
+    const result = await interrogateSubjectAction(plainSubject, userMessage, dossierContext);
 
     if (result.error) {
       setMessages(prev => [...prev, { role: 'model', content: `CRITICAL ERROR: ${result.error}` }]);
