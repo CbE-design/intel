@@ -7,11 +7,12 @@ import {
   User, FileSearch, MapPin, History, Radio, ShieldAlert, 
   Terminal, Activity, ShieldCheck, Search, Building2,
   Cpu, Layers, Shield, Fingerprint, Globe, Mail, Phone,
-  Database, Zap, AlertTriangle, Key, Server
+  Database, Zap, AlertTriangle, Key, Server, MessageSquareQuote
 } from 'lucide-react';
 import { BackgroundCheckForm } from './background-check-form';
 import { LocationMap } from './location-map';
 import { ReportsHistory } from './reports-history';
+import { IntelligenceChat } from './intelligence-chat';
 import type { Location, Subject, Report, AuditEntry, CorporateLinkage, OSINTMatch } from '@/lib/types';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, orderBy, serverTimestamp, limit } from 'firebase/firestore';
@@ -178,11 +179,22 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
     }, 1500);
   };
 
+  const currentDossierContext = useMemo(() => {
+    let context = "";
+    if (latestReport) context += `Latest Report: ${latestReport.report}\nRisk: ${latestReport.riskAssessment}\n`;
+    if (ricaData) context += `RICA Status: ${ricaData.status}\n`;
+    if (deepSearchState.result) context += `Breaches: ${JSON.stringify(deepSearchState.result.breachResults)}\nSummary: ${deepSearchState.result.summary}\n`;
+    return context;
+  }, [latestReport, ricaData, deepSearchState.result]);
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-6 h-12 bg-black/10 dark:bg-white/5 p-1 rounded-none border-y">
+      <TabsList className="grid w-full grid-cols-7 h-12 bg-black/10 dark:bg-white/5 p-1 rounded-none border-y">
         <TabsTrigger value="dossier" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
           <ShieldAlert className="mr-2 h-3 w-3" /> Dossier
+        </TabsTrigger>
+        <TabsTrigger value="interrogate" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
+          <MessageSquareQuote className="mr-2 h-3 w-3" /> Interrogate
         </TabsTrigger>
         <TabsTrigger value="profile" className="rounded-none uppercase text-[10px] font-bold tracking-widest">
           <User className="mr-2 h-3 w-3" /> Identity
@@ -201,6 +213,10 @@ export function SubjectDetailTabs({ subject }: { subject: Subject }) {
         </TabsTrigger>
       </TabsList>
       
+      <TabsContent value="interrogate" className="mt-6">
+        <IntelligenceChat subject={subject} dossierContext={currentDossierContext} />
+      </TabsContent>
+
       <TabsContent value="dossier" className="mt-6 space-y-6">
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="border-2 border-primary bg-background md:col-span-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">

@@ -2,6 +2,7 @@
 
 import { generateBackgroundCheckReport, type GenerateBackgroundCheckReportInput } from '@/ai/flows/generate-background-check-report';
 import { performDeepOSINTSearch, type DeepOSINTSearchInput, type DeepOSINTSearchOutput } from '@/ai/flows/perform-deep-osint-search';
+import { chatWithIntelligence, type IntelligenceChatInput, type IntelligenceChatOutput } from '@/ai/flows/intelligence-chat';
 import { backgroundCheckSchema } from '@/app/schemas';
 import type { Report, Subject } from './types';
 import { revalidatePath } from 'next/cache';
@@ -13,6 +14,11 @@ interface FormState {
 
 interface DeepSearchState {
   result?: DeepOSINTSearchOutput;
+  error?: string;
+}
+
+interface ChatState {
+  response?: IntelligenceChatOutput;
   error?: string;
 }
 
@@ -92,5 +98,35 @@ export async function performDeepSearchAction(
   } catch (e: any) {
     console.error('Deep Search Failure:', e);
     return { error: `Deep Discovery Failed: ${e.message}` };
+  }
+}
+
+/**
+ * Server action for the Intelligence Chat.
+ */
+export async function interrogateSubjectAction(
+  subject: Subject,
+  message: string,
+  context?: string
+): Promise<ChatState> {
+  try {
+    if (!subject) return { error: 'Subject identity lost.' };
+    
+    const input: IntelligenceChatInput = {
+      subjectProfile: {
+        name: subject.name,
+        idNumber: subject.idNumber,
+        phoneNumber: subject.phoneNumber,
+        address: subject.address,
+      },
+      message,
+      dossierContext: context,
+    };
+    
+    const result = await chatWithIntelligence(input);
+    return { response: result };
+  } catch (e: any) {
+    console.error('Interrogation Failure:', e);
+    return { error: `Handshake Denied: ${e.message}` };
   }
 }
