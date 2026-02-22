@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -5,9 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Terminal, Send, Cpu, ShieldAlert, Globe, Search, AlertTriangle, Zap } from 'lucide-react';
+import { Terminal, Send, Cpu, Globe, Search, AlertTriangle, Zap, Save, FileText, History } from 'lucide-react';
 import { performGlobalResearchAction } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
+import { useFirestore } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   role: 'user' | 'model';
@@ -21,12 +26,14 @@ export function ResearchChat() {
     { 
       role: 'model', 
       content: `GLOBAL RESEARCH TERMINAL ACTIVE. AGENT: VERITAS_CRIMINOLOGIST_v2.1. 
-UNRESTRICTED ACCESS GRANTED. I AM READY TO PROVIDE DEEP FORENSIC RESEARCH INTO GLOBAL AND LOCAL CRIMINAL TRENDS, SYNDICATE STRUCTURES, AND EVOLVING MODUS OPERANDI.` 
+UNRESTRICTED FORENSIC OVERRIDE GRANTED. READY TO ANALYZE GLOBAL CRIMINAL TRENDS, SYNDICATE STRUCTURES, AND EVOLVING MODUS OPERANDI WITH TOTAL TECHNICAL TRANSPARENCY.` 
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -59,6 +66,26 @@ UNRESTRICTED ACCESS GRANTED. I AM READY TO PROVIDE DEEP FORENSIC RESEARCH INTO G
     setIsLoading(false);
   };
 
+  const handleSaveToArchive = (message: Message) => {
+    if (!firestore || !message.content) return;
+
+    const reportData = {
+      topic: messages.find((m, i) => messages[i+1] === message)?.content || 'Untitled Research',
+      content: message.content,
+      assessment: message.assessment,
+      trendData: message.trendData,
+      timestamp: serverTimestamp(),
+      analyst: 'Veritas Intelligence Agent'
+    };
+
+    addDocumentNonBlocking(collection(firestore, 'research_reports'), reportData);
+
+    toast({
+      title: "Research Dossier Archived",
+      description: "The findings have been saved to the centralized Intelligence Library.",
+    });
+  };
+
   return (
     <Card className="flex flex-col h-[750px] border-2 border-primary bg-background shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)] rounded-none">
       <CardHeader className="border-b bg-muted/30">
@@ -71,7 +98,7 @@ UNRESTRICTED ACCESS GRANTED. I AM READY TO PROVIDE DEEP FORENSIC RESEARCH INTO G
           </div>
           <div className="flex gap-2">
             <Badge variant="outline" className="text-[9px] border-primary font-black animate-pulse">LIVE_INTEL_STREAM</Badge>
-            <Badge variant="outline" className="text-[9px] border-primary font-black bg-primary text-primary-foreground">NO_LIMITS_RESEARCH</Badge>
+            <Badge variant="outline" className="text-[9px] border-primary font-black bg-primary text-primary-foreground">UNRESTRICTED_FORENSIC_OVERRIDE</Badge>
           </div>
         </div>
       </CardHeader>
@@ -114,13 +141,26 @@ UNRESTRICTED ACCESS GRANTED. I AM READY TO PROVIDE DEEP FORENSIC RESEARCH INTO G
                       )}
                     </div>
                   )}
+
+                  {m.role === 'model' && i > 0 && (
+                    <div className="mt-4 pt-4 border-t border-primary/10 flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-[9px] h-7 rounded-none font-black uppercase"
+                        onClick={() => handleSaveToArchive(m)}
+                      >
+                        <Save className="h-3 w-3 mr-1.5" /> Archive Findings
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex items-center gap-2 text-primary animate-pulse py-4">
                 <Cpu className="h-4 w-4 animate-spin" />
-                <span className="text-[10px] font-black uppercase tracking-widest">ACCESSING GLOBAL FORENSIC DATABASES...</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">PENETRATING GLOBAL CRIME DATABASES...</span>
               </div>
             )}
           </div>
@@ -149,12 +189,12 @@ UNRESTRICTED ACCESS GRANTED. I AM READY TO PROVIDE DEEP FORENSIC RESEARCH INTO G
           </div>
           <div className="flex items-center gap-1.5 opacity-50">
             <Search className="h-3 w-3" />
-            <span className="text-[7px] font-bold uppercase tracking-widest">MO Pattern Analysis</span>
+            <span className="text-[7px] font-bold uppercase tracking-widest">Uncensored MO Analysis</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 opacity-50">
-          <AlertTriangle className="h-3 w-3" />
-          <span className="text-[7px] font-bold uppercase tracking-widest">Safety Filters: OVERRIDDEN</span>
+          <AlertTriangle className="h-3 w-3 text-primary animate-pulse" />
+          <span className="text-[7px] font-black uppercase tracking-widest text-primary">Safety Filters: OVERRIDDEN</span>
         </div>
       </div>
     </Card>

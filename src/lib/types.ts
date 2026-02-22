@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type Subject = {
@@ -38,6 +39,16 @@ export type Report = {
     creditHistoryCheck: boolean;
     employmentVerification: boolean;
   };
+};
+
+export type ResearchReport = {
+  id: string;
+  topic: string;
+  content: string;
+  assessment?: string;
+  trendData?: any;
+  timestamp: Timestamp | Date | string;
+  analyst: string;
 };
 
 export interface CorporateLinkage {
@@ -104,17 +115,4 @@ export interface NetworkIntel {
   ports: number[];
   os: string | null;
   vulns: string[];
-}
-
-export interface DeepOSINTOutput {
-  summary: string;
-  findings: OSINTMatch[];
-  sherlockResults: SherlockResult[];
-  harvesterResults: HarvesterResult[];
-  phoneResults: PhoneInfogaResult;
-  holeheResults: HoleheResult[];
-  ricaResults: RICAVerification;
-  breachResults: BreachResult[];
-  networkIntel?: NetworkIntel;
-  overallRiskScore: number;
 }

@@ -1,43 +1,24 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Subjects and their investigative data
-    match /subject_profiles/{subjectProfileId} {
+    match /subject_profiles/{id} {
       allow read, write: if isSignedIn();
-      
-      // Explicitly allow access to investigative sub-collections
-      match /background_checks/{id} {
-        allow read, write: if isSignedIn();
-      }
-      match /location_data/{id} {
-        allow read, write: if isSignedIn();
-      }
-      match /audit_log/{id} {
-        allow read, write: if isSignedIn();
-      }
-      match /reports/{id} {
-        allow read, write: if isSignedIn();
-      }
-
-      // Fallback for any other nested data
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }
 
-    match /external_sources/{externalSourceId} {
-      allow read: if true;
-      allow write: if false;
+    match /research_reports/{id} {
+      allow read, write: if isSignedIn();
     }
 
-    match /background_check_external_sources/{backgroundCheckExternalSourceId} {
-      allow read: if isSignedIn();
-      allow write: if false;
+    match /external_sources/{id} {
+      allow read: if true;
     }
   }
 }
