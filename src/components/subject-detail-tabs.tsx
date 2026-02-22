@@ -19,6 +19,7 @@ import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getCorporateLinkages, getOSINTMatches, performRICAReview } from '@/lib/intelligence-service';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
