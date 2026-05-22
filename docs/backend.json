@@ -32,6 +32,19 @@
         "analyst": { "type": "string" }
       },
       "required": ["topic", "content", "timestamp"]
+    },
+    "AuditLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditLog",
+      "type": "object",
+      "description": "System operational logs.",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "analyst": { "type": "string" },
+        "status": { "type": "string", "enum": ["Success", "Warning", "Info"] }
+      }
     }
   },
   "auth": {
@@ -39,6 +52,7 @@
   },
   "firestore": {
     "/subject_profiles/{id}": { "schema": "#/backend/entities/SubjectProfile", "description": "Subject profiles" },
+    "/subject_profiles/{id}/audit_log/{logId}": { "schema": "#/backend/entities/AuditLog", "description": "Subject activity logs" },
     "/research_reports/{id}": { "schema": "#/backend/entities/ResearchReport", "description": "Global research dossiers" }
   }
 }

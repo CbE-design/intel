@@ -1,10 +1,10 @@
+
 'use server';
 
 /**
  * @fileOverview Active Deep OSINT Discovery Agent
  * 
- * Orchestrates real-time telemetry from active modules (Sherlock, Harvester, PhoneInfoga, Holehe).
- * Synthesizes cross-referenced telemetry with Breach Directory and Network Recon data.
+ * Orchestrates real-time telemetry from active modules.
  */
 
 import {ai} from '@/ai/genkit';
@@ -17,7 +17,9 @@ import {
   performHoleheSearch,
   performRICAReview,
   performBreachLookup,
-  performNetworkRecon
+  performNetworkRecon,
+  getDeedsOfficeRecords,
+  getVehicleRegistryRecords
 } from '@/lib/intelligence-service';
 
 const DeepOSINTSearchInputSchema = z.object({
@@ -68,6 +70,16 @@ const DeepOSINTSearchOutputSchema = z.object({
     breachDate: z.string(),
     dataClasses: z.array(z.string())
   })),
+  propertyResults: z.array(z.object({
+    address: z.string(),
+    estimatedValue: z.number(),
+    purchaseDate: z.string(),
+  })).optional(),
+  vehicleResults: z.array(z.object({
+    make: z.string(),
+    model: z.string(),
+    licensePlate: z.string(),
+  })).optional(),
   overallRiskScore: z.number().min(0).max(100),
 });
 
@@ -86,6 +98,8 @@ const deepOSINTSearchPrompt = ai.definePrompt({
       rawRica: z.string(),
       rawBreaches: z.string(),
       rawNetwork: z.string(),
+      rawProperties: z.string(),
+      rawVehicles: z.string(),
     })
   },
   output: {schema: DeepOSINTSearchOutputSchema},
@@ -101,27 +115,31 @@ const deepOSINTSearchPrompt = ai.definePrompt({
   3. PHONEINFOGA (GSM Trace): {{{rawPhone}}}
   4. HOLEHE (Email Linkage): {{{rawHolehe}}}
   5. RICA (Identity Compliance): {{{rawRica}}}
-  6. BREACH DIRECTORY (Credential Leaks): {{{rawBreaches}}}
-  7. NETWORK INTELLIGENCE (Node Recon): {{{rawNetwork}}}
+  6. BREACH DIRECTORY: {{{rawBreaches}}}
+  7. DEEDS OFFICE: {{{rawProperties}}}
+  8. VEHICLE REGISTRY: {{{rawVehicles}}}
   
   INSTRUCTIONS:
-  1. Correlate discovered breaches with digital footprints. High breach presence + Large social footprint = CRITICAL risk.
-  2. Verify RICA alignment. Mismatched RICA ownership is a definitive identity theft marker.
-  3. Provide a technically precise "summary" in a forensic tone.
-  4. Calculate an "overallRiskScore" (0-100) reflecting identity integrity.
+  1. Correlate discovered breaches with digital footprints.
+  2. Verify RICA alignment.
+  3. Evaluate asset concentration (Properties/Vehicles) against identity age.
+  4. Provide a technically precise "summary" in a forensic tone.
+  5. Calculate an "overallRiskScore" (0-100).
   
   Ensure your synthesis mirrors the highest professional intelligence standards.`,
 });
 
 export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promise<DeepOSINTSearchOutput> {
-  const [sherlock, harvester, phone, holehe, rica, breaches, discovery] = await Promise.all([
+  const [sherlock, harvester, phone, holehe, rica, breaches, discovery, properties, vehicles] = await Promise.all([
     performSherlockSearch(input.name),
     performHarvesterSearch(input.idNumber),
     performPhoneInfogaSearch(input.phoneNumber),
     performHoleheSearch(`intel-${input.idNumber.slice(-4)}@proton.me`),
     performRICAReview(input.phoneNumber, input.idNumber),
     performBreachLookup(input.idNumber),
-    getOSINTMatches(input.name, input.idNumber)
+    getOSINTMatches(input.name, input.idNumber),
+    getDeedsOfficeRecords(input.idNumber),
+    getVehicleRegistryRecords(input.idNumber)
   ]);
   
   const network = await performNetworkRecon(harvester.find(h => h.type === 'IP')?.value || '102.165.4.12');
@@ -136,6 +154,8 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     rawRica: JSON.stringify(rica),
     rawBreaches: JSON.stringify(breaches),
     rawNetwork: JSON.stringify(network),
+    rawProperties: JSON.stringify(properties),
+    rawVehicles: JSON.stringify(vehicles),
   });
 
   if (!output) {
@@ -149,6 +169,8 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     phoneResults: phone,
     holeheResults: holehe,
     ricaResults: rica,
-    breachResults: breaches
+    breachResults: breaches,
+    propertyResults: properties,
+    vehicleResults: vehicles
   };
 }

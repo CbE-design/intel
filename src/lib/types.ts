@@ -74,7 +74,7 @@ export interface SherlockResult {
 
 export interface HarvesterResult {
   source: string;
-  type: 'Email' | 'Domain' | 'IP';
+  type: 'Email' | 'Domain' | 'IP' | string;
   value: string;
   leaked: boolean;
 }
