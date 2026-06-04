@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -130,14 +129,13 @@ const deepOSINTSearchPrompt = ai.definePrompt({
 });
 
 export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promise<DeepOSINTSearchOutput> {
-  const [sherlock, harvester, phone, holehe, rica, breaches, discovery, properties, vehicles] = await Promise.all([
+  const [sherlock, harvester, phone, holehe, rica, breaches, properties, vehicles] = await Promise.all([
     performSherlockSearch(input.name),
     performHarvesterSearch(input.idNumber),
     performPhoneInfogaSearch(input.phoneNumber),
     performHoleheSearch(`intel-${input.idNumber.slice(-4)}@proton.me`),
     performRICAReview(input.phoneNumber, input.idNumber),
     performBreachLookup(input.idNumber),
-    getOSINTMatches(input.name, input.idNumber),
     getDeedsOfficeRecords(input.idNumber),
     getVehicleRegistryRecords(input.idNumber)
   ]);
