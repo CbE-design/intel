@@ -71,7 +71,7 @@ export async function generateReportAction(
 
   } catch (e: any) {
     console.error('Intelligence Cycle Failure:', e);
-    return { error: `Intelligence Check Failed: ${e.message || 'Unknown error'}` };
+    return { error: e.message || 'Intelligence Check Failed.' };
   }
 }
 
@@ -97,7 +97,7 @@ export async function performDeepSearchAction(
     return { result };
   } catch (e: any) {
     console.error('Deep Search Failure:', e);
-    return { error: `Deep Discovery Failed: ${e.message}` };
+    return { error: e.message || 'Deep Discovery Failed.' };
   }
 }
 
@@ -127,7 +127,7 @@ export async function interrogateSubjectAction(
     return { response: result };
   } catch (e: any) {
     console.error('Interrogation Failure:', e);
-    return { error: `Handshake Denied: ${e.message}` };
+    return { error: e.message || 'Handshake Denied.' };
   }
 }
 
@@ -146,6 +146,6 @@ export async function performGlobalResearchAction(
     return { response: result };
   } catch (e: any) {
     console.error('Research Failure:', e);
-    return { error: `Research Handshake Denied: ${e.message}` };
+    return { error: e.message || 'Research Handshake Denied.' };
   }
 }
