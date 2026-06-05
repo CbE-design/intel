@@ -1,10 +1,11 @@
+
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
 /**
  * Global Genkit Intelligence Configuration
- * Standardized for stability across development environments.
- * Using 'gemini-1.5-flash-latest' to resolve v1beta 404 errors.
+ * Standardized to use 'gemini-1.5-flash-latest' for maximum API stability
+ * in the current environment and to resolve 404 endpoint errors.
  */
 export const ai = genkit({
   plugins: [googleAI()],
