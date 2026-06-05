@@ -3,10 +3,9 @@ import { googleAI } from '@genkit-ai/google-genai';
 
 /**
  * Global Genkit Intelligence Configuration
- * Standardized to use the 'v1' API version and stable 'gemini-1.5-flash' model
- * to resolve persistent 404 handshake errors in the development environment.
+ * Standardized to use 'v1beta' for structured output support (JSON schemas).
  */
 export const ai = genkit({
-  plugins: [googleAI({ apiVersion: 'v1' })],
+  plugins: [googleAI({ apiVersion: 'v1beta' })],
   model: 'googleai/gemini-1.5-flash',
 });
