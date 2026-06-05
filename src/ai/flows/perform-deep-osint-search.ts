@@ -1,9 +1,10 @@
+
 'use server';
 
 /**
  * @fileOverview Active Deep OSINT Discovery Agent
  * 
- * Orchestrates real-time telemetry from active modules.
+ * Orchestrates real-time telemetry from active modules and correlates findings.
  */
 
 import {ai} from '@/ai/genkit';
@@ -18,7 +19,8 @@ import {
   performBreachLookup,
   performNetworkRecon,
   getDeedsOfficeRecords,
-  getVehicleRegistryRecords
+  getVehicleRegistryRecords,
+  validateSouthAfricanID
 } from '@/lib/intelligence-service';
 
 const DeepOSINTSearchInputSchema = z.object({
@@ -46,7 +48,7 @@ const DeepOSINTSearchOutputSchema = z.object({
     source: z.string(),
     type: z.string(),
     value: z.string(),
-    leaked: z.boolean()
+    leaked: z.boolean() // Corrected from 'boolean' to 'z.boolean()'
   })),
   phoneResults: z.object({
     carrier: z.string(),
@@ -90,13 +92,13 @@ const deepOSINTSearchPrompt = ai.definePrompt({
     schema: z.object({
       name: z.string(),
       idNumber: z.string(),
+      idMetadata: z.string(),
       rawSherlock: z.string(),
       rawHarvester: z.string(),
       rawPhone: z.string(),
       rawHolehe: z.string(),
       rawRica: z.string(),
       rawBreaches: z.string(),
-      rawNetwork: z.string(),
       rawProperties: z.string(),
       rawVehicles: z.string(),
     })
@@ -107,28 +109,30 @@ const deepOSINTSearchPrompt = ai.definePrompt({
   TASK: Synthesize real-time telemetry from active OSINT modules into a digital forensic dossier.
   
   SUBJECT: {{{name}}} (ID: {{{idNumber}}})
+  ID METADATA: {{{idMetadata}}}
   
   TELEMETRY INPUTS:
-  1. SHERLOCK (User Crawl): {{{rawSherlock}}}
-  2. HARVESTER (Asset Recon): {{{rawHarvester}}}
-  3. PHONEINFOGA (GSM Trace): {{{rawPhone}}}
-  4. HOLEHE (Email Linkage): {{{rawHolehe}}}
-  5. RICA (Identity Compliance): {{{rawRica}}}
+  1. SHERLOCK: {{{rawSherlock}}}
+  2. HARVESTER: {{{rawHarvester}}}
+  3. PHONEINFOGA: {{{rawPhone}}}
+  4. HOLEHE: {{{rawHolehe}}}
+  5. RICA: {{{rawRica}}}
   6. BREACH DIRECTORY: {{{rawBreaches}}}
   7. DEEDS OFFICE: {{{rawProperties}}}
   8. VEHICLE REGISTRY: {{{rawVehicles}}}
   
   INSTRUCTIONS:
-  1. Correlate discovered breaches with digital footprints.
-  2. Verify RICA alignment.
-  3. Evaluate asset concentration (Properties/Vehicles) against identity age.
-  4. Provide a technically precise "summary" in a forensic tone.
-  5. Calculate an "overallRiskScore" (0-100).
+  1. Correlate discovered breaches with the extracted identity metadata.
+  2. Evaluate asset concentration (Properties/Vehicles) against identity age.
+  3. Provide a technically precise forensic summary.
+  4. Calculate an "overallRiskScore" (0-100).
   
-  Ensure your synthesis mirrors the highest professional intelligence standards.`,
+  Your analysis must reflect a professional intelligence standard.`,
 });
 
 export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promise<DeepOSINTSearchOutput> {
+  const validation = validateSouthAfricanID(input.idNumber);
+  
   const [sherlock, harvester, phone, holehe, rica, breaches, properties, vehicles] = await Promise.all([
     performSherlockSearch(input.name),
     performHarvesterSearch(input.idNumber),
@@ -140,18 +144,16 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     getVehicleRegistryRecords(input.idNumber)
   ]);
   
-  const network = await performNetworkRecon(harvester.find(h => h.type === 'IP')?.value || '102.165.4.12');
-
   const {output} = await deepOSINTSearchPrompt({
     name: input.name,
     idNumber: input.idNumber,
+    idMetadata: JSON.stringify(validation.metadata || {}),
     rawSherlock: JSON.stringify(sherlock),
     rawHarvester: JSON.stringify(harvester),
     rawPhone: JSON.stringify(phone),
     rawHolehe: JSON.stringify(holehe),
     rawRica: JSON.stringify(rica),
     rawBreaches: JSON.stringify(breaches),
-    rawNetwork: JSON.stringify(network),
     rawProperties: JSON.stringify(properties),
     rawVehicles: JSON.stringify(vehicles),
   });
