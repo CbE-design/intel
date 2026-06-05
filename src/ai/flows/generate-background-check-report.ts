@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { screenPEP, performBankVerification } from '@/lib/intelligence-service';
 
 const GenerateBackgroundCheckReportInputSchema = z.object({
   subjectProfile: z.object({
@@ -46,7 +47,6 @@ const checkCriminalRecord = ai.defineTool({
     issuingAuthority: z.string(),
   }),
 }, async (input) => {
-  // Simulation logic: ID numbers starting with '8' are flagged for demo
   const isFlagged = input.idNumber.startsWith('8');
   return {
     hasRecord: isFlagged,
@@ -56,22 +56,25 @@ const checkCriminalRecord = ai.defineTool({
   };
 });
 
-const checkCreditHistory = ai.defineTool({
-  name: 'checkCreditHistory',
-  description: 'Retrieves financial integrity snapshot from TransUnion South Africa.',
-  inputSchema: z.object({ idNumber: z.string() }),
-  outputSchema: z.object({
-    creditScore: z.number(),
-    riskCategory: z.string(),
-    judgments: z.array(z.string()),
-    verified: z.boolean(),
+const checkFinancialIntegrity = ai.defineTool({
+  name: 'checkFinancialIntegrity',
+  description: 'Performs AVS bank verification and PEP screening.',
+  inputSchema: z.object({ 
+    idNumber: z.string(),
+    name: z.string() 
   }),
-}, async () => {
+  outputSchema: z.object({
+    bankVerification: z.any(),
+    pepScreening: z.any(),
+  }),
+}, async (input) => {
+  const [bank, pep] = await Promise.all([
+    performBankVerification(input.idNumber, input.name),
+    screenPEP(input.name)
+  ]);
   return {
-    creditScore: 710 + Math.floor(Math.random() * 80),
-    riskCategory: 'Low',
-    judgments: [],
-    verified: true,
+    bankVerification: bank,
+    pepScreening: pep
   };
 });
 
@@ -79,7 +82,7 @@ const generateBackgroundCheckReportPrompt = ai.definePrompt({
   name: 'generateBackgroundCheckReportPrompt',
   input: {schema: GenerateBackgroundCheckReportInputSchema},
   output: {schema: GenerateBackgroundCheckReportOutputSchema},
-  tools: [checkCriminalRecord, checkCreditHistory],
+  tools: [checkCriminalRecord, checkFinancialIntegrity],
   config: {
     safetySettings: [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -101,7 +104,7 @@ const generateBackgroundCheckReportPrompt = ai.definePrompt({
   Credit Search: {{#if backgroundCheckParameters.creditHistoryCheck}}ENABLED{{else}}DISABLED{{/if}}
   
   GUIDELINES:
-  1. Use the provided tools (checkCriminalRecord, checkCreditHistory) to gather verified data if enabled.
+  1. Use the provided tools (checkCriminalRecord, checkFinancialIntegrity) to gather verified data if enabled.
   2. Structure the report with professional headings (e.g., EXECUTIVE SUMMARY, FINDINGS, RISK MITIGATION).
   3. Adhere to South African legal context: {{{southAfricanRegulations}}}.
   4. The "report" field should be a long-form professional text (minimum 3 paragraphs).

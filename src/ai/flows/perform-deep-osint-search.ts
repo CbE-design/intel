@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -10,14 +9,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { 
-  getOSINTMatches, 
   performSherlockSearch, 
   performHarvesterSearch,
   performPhoneInfogaSearch,
   performHoleheSearch,
   performRICAReview,
   performBreachLookup,
-  performNetworkRecon,
   getDeedsOfficeRecords,
   getVehicleRegistryRecords,
   validateSouthAfricanID
@@ -48,7 +45,7 @@ const DeepOSINTSearchOutputSchema = z.object({
     source: z.string(),
     type: z.string(),
     value: z.string(),
-    leaked: z.boolean() // Corrected from 'boolean' to 'z.boolean()'
+    leaked: z.boolean()
   })),
   phoneResults: z.object({
     carrier: z.string(),

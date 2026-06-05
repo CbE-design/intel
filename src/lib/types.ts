@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export type Subject = {
@@ -55,8 +54,23 @@ export interface CorporateLinkage {
   companyName: string;
   registrationNumber: string;
   role: string;
-  status: string;
+  status: 'Active' | 'Deregistered' | 'Liquidation' | 'Final Liquidation';
   appointmentDate: string;
+}
+
+export interface BankVerification {
+  accountFound: boolean;
+  holderMatch: boolean;
+  accountStatus: 'Open' | 'Closed' | 'Frozen';
+  accountType: 'Current' | 'Savings' | 'Business';
+  verifiedDate: string;
+}
+
+export interface PEPScreening {
+  onList: boolean;
+  riskLevel: 'None' | 'Low' | 'Medium' | 'High';
+  source: string;
+  details?: string;
 }
 
 export interface OSINTMatch {

@@ -1,8 +1,8 @@
-
 /**
  * @fileOverview Professional Intelligence Gateway Service
  * 
- * Implements realistic identity validation and OSINT telemetry modules.
+ * Implements realistic identity validation, financial handshake simulations,
+ * and PEP screening modules specific to the South African regulatory framework.
  */
 
 import { 
@@ -14,7 +14,9 @@ import {
   type HoleheResult,
   type RICAVerification,
   type BreachResult,
-  type NetworkIntel
+  type NetworkIntel,
+  type BankVerification,
+  type PEPScreening
 } from './types';
 
 export type IntelligenceSourceStatus = 'Connected' | 'Error' | 'Inactive';
@@ -23,7 +25,7 @@ export interface IntelligenceSource {
   id: string;
   name: string;
   provider: string;
-  type: 'Criminal' | 'Credit' | 'Identity' | 'Location' | 'Corporate' | 'OSINT' | 'RICA' | 'Breach' | 'Network';
+  type: 'Criminal' | 'Credit' | 'Identity' | 'Location' | 'Corporate' | 'OSINT' | 'RICA' | 'Breach' | 'Network' | 'Financial';
   status: IntelligenceSourceStatus;
   lastSync?: Date;
 }
@@ -81,9 +83,38 @@ export const MOCK_SOURCES: IntelligenceSource[] = [
   { id: 'src_3', name: 'CIPC Company Registry', provider: 'SearchWorks CIPC', type: 'Corporate', status: 'Connected', lastSync: new Date() },
   { id: 'src_4', name: 'DHA Identity Verification', provider: 'LexisNexis / Home Affairs', type: 'Identity', status: 'Connected', lastSync: new Date() },
   { id: 'src_5', name: 'RICA Registration Gateway', provider: 'National RICA Portal', type: 'RICA', status: 'Connected', lastSync: new Date() },
-  { id: 'src_6', name: 'Breach Directory API', provider: 'HaveIBeenPwned / LeakCheck', type: 'Breach', status: 'Connected', lastSync: new Date() },
-  { id: 'src_7', name: 'Network Infrastructure Recon', provider: 'Shodan / IPQualityScore', type: 'Network', status: 'Connected', lastSync: new Date() },
+  { id: 'src_6', name: 'Bank Verification (AVS)', provider: 'Inter-Bank Gateway', type: 'Financial', status: 'Connected', lastSync: new Date() },
+  { id: 'src_7', name: 'PEP/Sanction Screening', provider: 'World-Check Global', type: 'OSINT', status: 'Connected', lastSync: new Date() },
 ];
+
+/**
+ * Realistic Bank Account Verification (AVS)
+ */
+export async function performBankVerification(idNumber: string, name: string): Promise<BankVerification> {
+  await new Promise(resolve => setTimeout(resolve, 1800));
+  const isFlagged = idNumber.startsWith('8');
+  return {
+    accountFound: true,
+    holderMatch: !isFlagged,
+    accountStatus: isFlagged ? 'Frozen' : 'Open',
+    accountType: 'Current',
+    verifiedDate: new Date().toISOString()
+  };
+}
+
+/**
+ * Realistic PEP and Sanction Screening
+ */
+export async function screenPEP(name: string): Promise<PEPScreening> {
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  const isPEP = name.toUpperCase().includes('ZUMA') || name.toUpperCase().includes('GUPTA');
+  return {
+    onList: isPEP,
+    riskLevel: isPEP ? 'High' : 'None',
+    source: 'Veritas Sanction Aggregator',
+    details: isPEP ? 'Subject identified on regional influence and politically exposed persons registry.' : undefined
+  };
+}
 
 export async function performRICAReview(phone: string, idNumber: string): Promise<RICAVerification> {
   const validation = validateSouthAfricanID(idNumber);
@@ -128,7 +159,7 @@ export async function performSherlockSearch(name: string): Promise<SherlockResul
   const platforms = ['GitHub', 'Reddit', 'Instagram', 'Twitter', 'LinkedIn'];
   return platforms.map(p => ({
     site: p,
-    exists: Math.random() > 0.6, // More realistic match rate
+    exists: Math.random() > 0.6,
     url: `https://${p.toLowerCase()}.com/${username}`
   }));
 }
