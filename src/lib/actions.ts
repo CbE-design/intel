@@ -8,17 +8,17 @@ import type { Report, Subject } from './types';
 import { revalidatePath } from 'next/cache';
 
 interface FormState {
-  report?: Report;
+  report?: any;
   error?: string;
 }
 
 interface DeepSearchState {
-  result?: DeepOSINTSearchOutput;
+  result?: any;
   error?: string;
 }
 
 interface ChatState {
-  response?: IntelligenceChatOutput;
+  response?: any;
   error?: string;
 }
 
@@ -67,7 +67,8 @@ export async function generateReportAction(
     const result = await generateBackgroundCheckReport(input);
     revalidatePath(`/subjects/${subject.id}`);
     
-    return { report: result };
+    // Ensure the result is plain JSON serializable
+    return { report: JSON.parse(JSON.stringify(result)) };
 
   } catch (e: any) {
     console.error('Intelligence Cycle Failure:', e);
@@ -94,7 +95,7 @@ export async function performDeepSearchAction(
     const result = await performDeepOSINTSearch(input);
     revalidatePath(`/subjects/${subject.id}`);
     
-    return { result };
+    return { result: JSON.parse(JSON.stringify(result)) };
   } catch (e: any) {
     console.error('Deep Search Failure:', e);
     return { error: e.message || 'Deep Discovery Failed.' };
@@ -124,7 +125,7 @@ export async function interrogateSubjectAction(
     };
     
     const result = await chatWithIntelligence(input);
-    return { response: result };
+    return { response: JSON.parse(JSON.stringify(result)) };
   } catch (e: any) {
     console.error('Interrogation Failure:', e);
     return { error: e.message || 'Handshake Denied.' };
@@ -143,7 +144,7 @@ export async function performGlobalResearchAction(
     };
     
     const result = await chatWithIntelligence(input);
-    return { response: result };
+    return { response: JSON.parse(JSON.stringify(result)) };
   } catch (e: any) {
     console.error('Research Failure:', e);
     return { error: e.message || 'Research Handshake Denied.' };
