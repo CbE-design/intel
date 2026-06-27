@@ -4,7 +4,7 @@
  * @fileOverview Active Deep OSINT Discovery Agent
  * 
  * Orchestrates real-time telemetry from active modules and correlates findings.
- * Fixed ReferenceError: ensured all boolean fields use z.boolean().
+ * Ensures strict Zod validation to prevent runtime ReferenceErrors.
  */
 
 import {ai} from '@/ai/genkit';
@@ -136,7 +136,7 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     performHarvesterSearch(input.idNumber),
     performPhoneInfogaSearch(input.phoneNumber),
     performHoleheSearch(`intel-${input.idNumber.slice(-4)}@proton.me`),
-    performRICAVerification(input.phoneNumber, input.idNumber),
+    performRICAReview(input.phoneNumber, input.idNumber),
     performBreachLookup(input.idNumber),
     getDeedsOfficeRecords(input.idNumber),
     getVehicleRegistryRecords(input.idNumber)
@@ -171,8 +171,4 @@ export async function performDeepOSINTSearch(input: DeepOSINTSearchInput): Promi
     propertyResults: properties,
     vehicleResults: vehicles
   };
-}
-
-async function performRICAVerification(phone: string, idNumber: string) {
-  return performRICAReview(phone, idNumber);
 }
