@@ -4,11 +4,10 @@ import { googleAI } from '@genkit-ai/google-genai';
 /**
  * Global Genkit Intelligence Configuration
  * 
- * Standardized to use 'v1beta' for structured output support (JSON schemas).
- * Using 'gemini-1.5-flash' to ensure the most reliable connection 
- * across different environment regions.
+ * Standardized to use 'gemini-1.5-flash' for structured output support.
+ * The API version is managed by the plugin to ensure compatibility.
  */
 export const ai = genkit({
-  plugins: [googleAI({ apiVersion: 'v1beta' })],
+  plugins: [googleAI()],
   model: 'googleai/gemini-1.5-flash',
 });
