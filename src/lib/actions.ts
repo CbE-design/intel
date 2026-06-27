@@ -1,10 +1,10 @@
 'use server';
 
 import { generateBackgroundCheckReport, type GenerateBackgroundCheckReportInput } from '@/ai/flows/generate-background-check-report';
-import { performDeepOSINTSearch, type DeepOSINTSearchInput, type DeepOSINTSearchOutput } from '@/ai/flows/perform-deep-osint-search';
-import { chatWithIntelligence, type IntelligenceChatInput, type IntelligenceChatOutput } from '@/ai/flows/intelligence-chat';
+import { performDeepOSINTSearch, type DeepOSINTSearchInput } from '@/ai/flows/perform-deep-osint-search';
+import { chatWithIntelligence, type IntelligenceChatInput } from '@/ai/flows/intelligence-chat';
 import { backgroundCheckSchema } from '@/app/schemas';
-import type { Report, Subject } from './types';
+import type { Subject } from './types';
 import { revalidatePath } from 'next/cache';
 
 interface FormState {
@@ -67,7 +67,6 @@ export async function generateReportAction(
     const result = await generateBackgroundCheckReport(input);
     revalidatePath(`/subjects/${subject.id}`);
     
-    // Ensure the result is plain JSON serializable
     return { report: JSON.parse(JSON.stringify(result)) };
 
   } catch (e: any) {
