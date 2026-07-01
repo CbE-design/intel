@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Veritas Intel"
+version = "1.0.0"
+id = "artifacts/veritas-intel"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18804
+
+[services.development]
+run = "pnpm --filter @workspace/veritas-intel run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/veritas-intel", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/veritas-intel/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18804"
+BASE_PATH = "/"

@@ -1,0 +1,1 @@
+- [Veritas Intel Port Decisions](veritas-intel-port.md) — Next.js→Vite migration: wouter routing, @google/generative-ai (not genkit) in api-server, Firebase only
