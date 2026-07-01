@@ -1,21 +1,19 @@
 ---
 name: Veritas Intel DB Architecture
-description: PostgreSQL migration from Firebase Firestore — key decisions and routing conventions
+description: Durable decisions from Firebase→PostgreSQL migration — API pitfalls, key conventions
 ---
 
-## Architecture
+## Pitfall: 204 No Content responses
+All DELETE endpoints return `204 No Content`. The `req()` helper in `api-client.ts` must check `res.status === 204` before calling `res.json()` — otherwise it throws `Unexpected end of JSON input`.
 
-- **API Server** (`artifacts/api-server`): Express server, routes mounted at `/api` via `app.use("/api", router)`. Individual route files register at `/subjects`, `/research-reports`, etc.
-- **Frontend** (`artifacts/veritas-intel`): Vite/React. API calls use `const BASE = '/api'` in `api-client.ts`. Custom hooks in `use-api.ts` wrap the client.
-- **Database**: Replit PostgreSQL via `pg` Pool. Schema auto-initialized in `lib/db.ts` → `initSchema()` called from `app.ts` on startup.
+**Why:** Firebase never returns 204; migrating to REST APIs introduces this failure mode.
 
-## Key Tables
-subjects, subject_locations, background_checks, audit_log, case_notes, research_reports
+## Pitfall: AI env var must be consistent
+The Replit secret is `GOOGLE_GENAI_API_KEY`. Both the guard checks AND `getGenAI()` in `intelligence.ts` must read this exact name. Using `GOOGLE_API_KEY` in client initialization while guarding on `GOOGLE_GENAI_API_KEY` creates a split-brain where the live path is entered but the client fails silently.
 
-## Why
-Firebase Firestore was replaced to use Replit's built-in PostgreSQL for persistence, avoiding external service credentials and improving reliability.
+## Schema initialization
+`initSchema()` uses `CREATE TABLE IF NOT EXISTS` — safe to call on every server startup. Called at top of `app.ts` before the server starts.
 
 ## How to apply
-- All subject sub-resources are nested: `POST /subjects/:id/background-checks`, etc.
-- `sanitizeForServer()` in utils.ts handles date serialization for Server Actions (no Firestore Timestamps anymore — all dates are ISO strings from the DB).
-- `FirebaseErrorListener` and `firebase/` directory remain in the repo but are unused; `main.tsx` no longer wraps with `FirebaseClientProvider`.
+- All subject sub-collections are nested routes: e.g. `POST /subjects/:id/background-checks`
+- Dates from the DB are ISO strings; `sanitizeForServer()` in utils.ts handles serialization for Server Actions

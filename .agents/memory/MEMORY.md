@@ -1,1 +1,1 @@
-- [Veritas Intel DB migration](veritas-intel-db.md) — Firebase replaced with Replit PostgreSQL; API at /api prefix; frontend uses api-client.ts + use-api.ts hooks
+- [Veritas Intel DB architecture](veritas-intel-db.md) — PostgreSQL replaces Firestore; API client must handle 204 responses; AI key must be GOOGLE_GENAI_API_KEY throughout

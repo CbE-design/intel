@@ -9,6 +9,13 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(text || `HTTP ${res.status}`);
   }
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as unknown as T;
+  }
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return undefined as unknown as T;
+  }
   return res.json() as Promise<T>;
 }
 
