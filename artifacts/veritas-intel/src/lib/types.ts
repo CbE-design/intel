@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore';
-
 export type Subject = {
   id: string;
   name: string;
@@ -8,13 +6,14 @@ export type Subject = {
   phoneNumber: string;
   avatarUrl: string;
   status: 'Clear' | 'Review' | 'Pending';
-  lastCheck: Timestamp | Date | string;
+  lastCheck: Date | string;
 };
 
 export type Location = {
+  id?: string;
   lat: number;
   lng: number;
-  timestamp: Timestamp;
+  timestamp: Date | string;
   consent?: boolean;
   deviceId?: string;
 };
@@ -22,16 +21,17 @@ export type Location = {
 export type AuditEntry = {
   id: string;
   action: string;
-  timestamp: Timestamp | Date | string;
+  timestamp: Date | string;
   analyst: string;
   status: 'Success' | 'Warning' | 'Info';
 };
 
 export type Report = {
+  id?: string;
   report: string;
   riskAssessment: string;
   verificationScore: number;
-  timestamp?: Timestamp | Date | string;
+  timestamp?: Date | string;
   initiatedBy?: string;
   parameters?: {
     criminalRecordCheck: boolean;
@@ -46,7 +46,7 @@ export type ResearchReport = {
   content: string;
   assessment?: string;
   trendData?: any;
-  timestamp: Timestamp | Date | string;
+  timestamp: Date | string;
   analyst: string;
 };
 
@@ -200,5 +200,5 @@ export interface CaseNote {
   content: string;
   tag: "Evidence" | "Observation" | "Action" | "Alert";
   analyst: string;
-  timestamp: Timestamp | Date | string;
+  timestamp: Date | string;
 }

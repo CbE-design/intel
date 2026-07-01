@@ -6,32 +6,20 @@ import type { Location } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Radio, SignalHigh, History as HistoryIcon, AlertTriangle } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 
-/**
- * Safely formats a location timestamp. 
- * Handles Firestore Timestamps, standard Dates, and null values (e.g. while serverTimestamp is pending).
- */
 function formatLocationTime(timestamp: any): string {
   if (!timestamp) return 'Syncing...';
-  
   try {
-    const date = timestamp instanceof Timestamp 
-      ? timestamp.toDate() 
-      : timestamp instanceof Date 
-        ? timestamp 
-        : typeof timestamp.seconds === 'number' 
-          ? new Date(timestamp.seconds * 1000) 
-          : null;
-    
-    if (date) {
-      return format(date, 'HH:mm:ss');
-    }
+    const date = timestamp instanceof Date
+      ? timestamp
+      : typeof timestamp === 'string' || typeof timestamp === 'number'
+        ? new Date(timestamp)
+        : null;
+    if (date) return format(date, 'HH:mm:ss');
   } catch (e) {
     console.error('Error formatting location time:', e);
   }
-  
   return 'Intercepted';
 }
 

@@ -5,20 +5,11 @@ import { Link } from 'wouter';
 import { MoreHorizontal, PlusCircle, Search, Trash2, ShieldCheck, Fingerprint } from 'lucide-react';
 import type { Subject } from '@/lib/types';
 import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
+  Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,11 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { format } from 'date-fns';
-import { Timestamp, doc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
+import { api } from '@/lib/api-client';
 
 const statusStyles: Record<Subject['status'], string> = {
   Clear: 'bg-black text-white dark:bg-white dark:text-black border-none font-black',
@@ -40,18 +29,12 @@ const statusStyles: Record<Subject['status'], string> = {
 
 function formatDate(date: Subject['lastCheck']): string {
   if (!date) return 'Never';
-  if (date instanceof Timestamp) {
-    return format(date.toDate(), 'yyyy-MM-dd');
-  }
-  if (date instanceof Date) {
-    return format(date, 'yyyy-MM-dd');
-  }
-  return date;
+  try { return format(new Date(date as string), 'yyyy-MM-dd'); }
+  catch { return String(date); }
 }
 
-export function SubjectsList({ subjects }: { subjects: Subject[] }) {
+export function SubjectsList({ subjects, onDeleted }: { subjects: Subject[]; onDeleted?: () => void }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const filteredSubjects = subjects.filter(
@@ -60,15 +43,15 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
       subject.idNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = (id: string, name: string) => {
-    if (!firestore) return;
+  const handleDelete = async (id: string, name: string) => {
     if (confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
-      const docRef = doc(firestore, 'subject_profiles', id);
-      deleteDocumentNonBlocking(docRef);
-      toast({
-        title: "Subject Deleted",
-        description: `${name} has been removed from the intelligence database.`,
-      });
+      try {
+        await api.subjects.delete(id);
+        toast({ title: 'Subject Deleted', description: `${name} has been removed from the intelligence database.` });
+        onDeleted?.();
+      } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Failed', description: e.message });
+      }
     }
   };
 
@@ -161,7 +144,7 @@ export function SubjectsList({ subjects }: { subjects: Subject[] }) {
                           <DropdownMenuLabel className="opacity-40">Actions</DropdownMenuLabel>
                           <DropdownMenuItem asChild className="cursor-pointer">
                             <Link href={`/subjects/${subject.id}`} className="flex items-center gap-2">
-                               <ShieldCheck className="h-3.5 w-3.5" /> Intelligence
+                              <ShieldCheck className="h-3.5 w-3.5" /> Intelligence
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />

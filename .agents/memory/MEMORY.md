@@ -1,0 +1,1 @@
+- [Veritas Intel DB migration](veritas-intel-db.md) — Firebase replaced with Replit PostgreSQL; API at /api prefix; frontend uses api-client.ts + use-api.ts hooks

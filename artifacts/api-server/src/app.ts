@@ -3,6 +3,11 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { initSchema } from "./lib/db";
+
+initSchema().catch((err) => {
+  logger.error({ err }, "Failed to initialize DB schema");
+});
 
 const app: Express = express();
 

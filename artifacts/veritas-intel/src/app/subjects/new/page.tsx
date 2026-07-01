@@ -5,9 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useFirestore } from '@/firebase';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { api } from '@/lib/api-client';
 import { useLocation, Link } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,45 +24,28 @@ const newSubjectSchema = z.object({
 type NewSubjectForm = z.infer<typeof newSubjectSchema>;
 
 export default function NewSubjectPage() {
-  const firestore = useFirestore();
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const form = useForm<NewSubjectForm>({
     resolver: zodResolver(newSubjectSchema),
-    defaultValues: {
-      name: '',
-      idNumber: '',
-      address: '',
-      phoneNumber: '',
-    },
+    defaultValues: { name: '', idNumber: '', address: '', phoneNumber: '' },
   });
 
-  const onSubmit = (values: NewSubjectForm) => {
-    if (!firestore) return;
-
-    const subjectsCollection = collection(firestore, 'subject_profiles');
-    addDocumentNonBlocking(subjectsCollection, {
-      ...values,
-      status: 'Pending',
-      lastCheck: serverTimestamp(),
-      avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-
-    toast({
-      title: "Subject Created",
-      description: "The new subject has been added to the database.",
-    });
-
-    navigate('/');
+  const onSubmit = async (values: NewSubjectForm) => {
+    try {
+      await api.subjects.create(values);
+      toast({ title: 'Subject Created', description: 'The new subject has been added to the database.' });
+      navigate('/subjects');
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Failed', description: e.message });
+    }
   };
 
   return (
     <AppLayout>
       <PageHeader title="Create New Subject">
-        <Link href="/">
+        <Link href="/subjects">
           <Button variant="outline">
             <ChevronLeft className="mr-2 h-4 w-4" />
             Back to Subjects
@@ -80,59 +61,37 @@ export default function NewSubjectPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="idNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="9901015000080" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Main St, Johannesburg, 2000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+27821234567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit">Create Subject</Button>
+                <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="idNumber" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ID Number</FormLabel>
+                    <FormControl><Input placeholder="9901015000080" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="address" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl><Input placeholder="123 Main St, Johannesburg, 2000" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl><Input placeholder="+27821234567" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? 'Creating...' : 'Create Subject'}
+                </Button>
               </form>
             </Form>
           </CardContent>

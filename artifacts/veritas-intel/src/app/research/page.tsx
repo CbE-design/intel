@@ -5,13 +5,12 @@ import { AppLayout } from '@/components/app-layout';
 import { PageHeader } from '@/components/page-header';
 import { ResearchChat } from '@/components/research-chat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldAlert, Fingerprint, History, FileText, Database, ShieldCheck, Trash2, LayoutPanelLeft } from 'lucide-react';
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, orderBy, limit, deleteDoc, doc } from 'firebase/firestore';
+import { ShieldAlert, History, Database, ShieldCheck, Trash2, LayoutPanelLeft } from 'lucide-react';
+import { useResearchReports } from '@/lib/use-api';
+import { api } from '@/lib/api-client';
 import type { ResearchReport } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -19,29 +18,26 @@ import { useToast } from '@/hooks/use-toast';
 
 function formatDate(date: any): string {
   if (!date) return 'Live';
-  if (date instanceof Timestamp) return format(date.toDate(), 'MM/dd HH:mm');
-  if (date instanceof Date) return format(date, 'MM/dd HH:mm');
-  return String(date);
+  try { return format(new Date(date), 'MM/dd HH:mm'); }
+  catch { return String(date); }
 }
 
 export default function ResearchPage() {
-  const firestore = useFirestore();
+  const { data: archivedReports, isLoading, refresh } = useResearchReports();
   const { toast } = useToast();
   const [selectedReport, setSelectedReport] = useState<ResearchReport | null>(null);
 
-  const reportsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'research_reports'), orderBy('timestamp', 'desc'), limit(20)) : null),
-    [firestore]
-  );
-  const { data: archivedReports, isLoading } = useCollection<ResearchReport>(reportsQuery);
-
   const handleDeleteReport = async (e: React.MouseEvent, reportId: string) => {
     e.stopPropagation();
-    if (!firestore) return;
     if (confirm('Delete this intelligence dossier?')) {
-      await deleteDoc(doc(firestore, 'research_reports', reportId));
-      if (selectedReport?.id === reportId) setSelectedReport(null);
-      toast({ title: "Dossier Purged", description: "The archived findings have been removed." });
+      try {
+        await api.researchReports.delete(reportId);
+        if (selectedReport?.id === reportId) setSelectedReport(null);
+        toast({ title: 'Dossier Purged', description: 'The archived findings have been removed.' });
+        refresh();
+      } catch (err: any) {
+        toast({ variant: 'destructive', title: 'Failed', description: err.message });
+      }
     }
   };
 
@@ -74,9 +70,9 @@ export default function ResearchPage() {
                   <CardDescription className="text-[9px] uppercase font-bold opacity-60">Intelligence Dossiers</CardDescription>
                 </div>
                 {selectedReport && (
-                   <Button variant="ghost" size="icon" onClick={() => setSelectedReport(null)} className="h-6 w-6">
-                      <LayoutPanelLeft className="h-3 w-3" />
-                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedReport(null)} className="h-6 w-6">
+                    <LayoutPanelLeft className="h-3 w-3" />
+                  </Button>
                 )}
               </CardHeader>
               <CardContent className="flex-1 p-0 overflow-hidden">
@@ -85,37 +81,36 @@ export default function ResearchPage() {
                     <div className="space-y-4">
                       <Skeleton className="h-12 w-full rounded-none" />
                       <Skeleton className="h-12 w-full rounded-none" />
-                      <Skeleton className="h-12 w-full rounded-none" />
                     </div>
                   ) : archivedReports && archivedReports.length > 0 ? (
                     <div className="space-y-4">
                       {archivedReports.map((report) => (
-                        <div 
-                          key={report.id} 
+                        <div
+                          key={report.id}
                           onClick={() => setSelectedReport(report)}
                           className={`border-b border-primary/10 pb-3 last:border-0 p-2 cursor-pointer transition-colors group relative ${selectedReport?.id === report.id ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
                         >
-                           <div className="flex items-center justify-between mb-1">
-                              <span className="text-[8px] font-mono opacity-50">{formatDate(report.timestamp)}</span>
-                              <div className="flex items-center gap-1">
-                                {report.assessment && (
-                                  <Badge className="text-[6px] h-3 px-1 rounded-none bg-primary text-primary-foreground font-black uppercase">
-                                    {report.assessment.replace('_', ' ')}
-                                  </Badge>
-                                )}
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-4 w-4 opacity-0 group-hover:opacity-100 text-destructive"
-                                  onClick={(e) => handleDeleteReport(e, report.id)}
-                                >
-                                  <Trash2 className="h-2.5 w-2.5" />
-                                </Button>
-                              </div>
-                           </div>
-                           <p className="text-[10px] font-black uppercase tracking-tight line-clamp-1 group-hover:text-primary transition-colors pr-6">
-                              {report.topic}
-                           </p>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[8px] font-mono opacity-50">{formatDate(report.timestamp)}</span>
+                            <div className="flex items-center gap-1">
+                              {report.assessment && (
+                                <Badge className="text-[6px] h-3 px-1 rounded-none bg-primary text-primary-foreground font-black uppercase">
+                                  {report.assessment.replace('_', ' ')}
+                                </Badge>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 opacity-0 group-hover:opacity-100 text-destructive"
+                                onClick={(e) => handleDeleteReport(e, report.id)}
+                              >
+                                <Trash2 className="h-2.5 w-2.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-[10px] font-black uppercase tracking-tight line-clamp-1 group-hover:text-primary transition-colors pr-6">
+                            {report.topic}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -149,7 +144,7 @@ export default function ResearchPage() {
           </div>
 
           <div className="lg:col-span-3">
-            <ResearchChat initialReport={selectedReport} />
+            <ResearchChat initialReport={selectedReport} onReportSaved={refresh} />
           </div>
         </div>
       </main>

@@ -16,12 +16,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileText, Save, ShieldCheck, Activity, Search, Database, Globe } from 'lucide-react';
-import { useFirestore } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { sanitizeForServer } from '@/lib/utils';
+import { api } from '@/lib/api-client';
 
 type FormState = {
   error?: string;
@@ -42,30 +40,22 @@ const INVESTIGATIVE_STEPS = [
 
 function SubmitButton() {
   const { pending } = useFormStatus();
-
   return (
     <Button type="submit" disabled={pending} className="w-full h-12 md:h-10 uppercase text-xs font-black tracking-widest">
       {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Analyzing...
-        </>
+        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing...</>
       ) : (
-        <>
-          <ShieldCheck className="mr-2 h-4 w-4" />
-          Initiate Cycle
-        </>
+        <><ShieldCheck className="mr-2 h-4 w-4" />Initiate Cycle</>
       )}
     </Button>
   );
 }
 
-export function BackgroundCheckForm({ subject }: { subject: Subject }) {
+export function BackgroundCheckForm({ subject, onReportSaved }: { subject: Subject; onReportSaved?: () => void }) {
   const plainSubject = useMemo(() => sanitizeForServer(subject), [subject]);
-  
+
   const [state, formAction, isPending] = useActionState(generateReportAction.bind(null, plainSubject), initialState);
   const { toast } = useToast();
-  const firestore = useFirestore();
   const lastSavedReportRef = useRef<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -96,47 +86,35 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
 
   useEffect(() => {
     if (state.error) {
-      toast({
-        variant: 'destructive',
-        title: 'Cycle Failed',
-        description: state.error,
-      });
+      toast({ variant: 'destructive', title: 'Cycle Failed', description: state.error });
     }
 
-    if (state.report && firestore && lastSavedReportRef.current !== state.report.report) {
-      const reportsCollection = collection(firestore, 'subject_profiles', subject.id, 'background_checks');
-      const auditCollection = collection(firestore, 'subject_profiles', subject.id, 'audit_log');
-      
+    if (state.report && lastSavedReportRef.current !== state.report.report) {
+      lastSavedReportRef.current = state.report.report;
+
       const params = {
         criminalRecordCheck: form.getValues('criminalRecordCheck'),
         creditHistoryCheck: form.getValues('creditHistoryCheck'),
         employmentVerification: form.getValues('employmentVerification'),
       };
 
-      addDocumentNonBlocking(reportsCollection, {
+      api.backgroundChecks.create(subject.id, {
         ...state.report,
-        timestamp: serverTimestamp(),
         initiatedBy: 'Veritas AI',
-        subjectName: subject.name,
-        subjectIdNumber: subject.idNumber,
-        parameters: params
-      });
+        parameters: params,
+      }).then(() => {
+        onReportSaved?.();
+      }).catch(console.error);
 
-      addDocumentNonBlocking(auditCollection, {
+      api.auditLog.create(subject.id, {
         action: 'Cycle Completed',
-        timestamp: serverTimestamp(),
         analyst: 'System Agent',
-        status: 'Success'
-      });
+        status: 'Success',
+      }).catch(console.error);
 
-      lastSavedReportRef.current = state.report.report;
-      
-      toast({
-        title: "Intelligence Archived",
-        description: "Dossier synchronized.",
-      });
+      toast({ title: 'Intelligence Archived', description: 'Dossier synchronized.' });
     }
-  }, [state.error, state.report, toast, firestore, subject.id, subject.name, subject.idNumber, form]);
+  }, [state.error, state.report, toast, subject.id, form, onReportSaved]);
 
   return (
     <div className="grid gap-4 md:gap-6 md:grid-cols-2">
@@ -158,15 +136,15 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
                 </div>
                 <Progress value={(currentStep / (INVESTIGATIVE_STEPS.length - 1)) * 100} className="h-1.5" />
                 <div className="grid grid-cols-3 gap-1.5">
-                   <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 1 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
-                      <Globe className="h-3 w-3 mb-0.5" /> ID
-                   </div>
-                   <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 2 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
-                      <Search className="h-3 w-3 mb-0.5" /> S-REC
-                   </div>
-                   <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 3 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
-                      <Database className="h-3 w-3 mb-0.5" /> FIN
-                   </div>
+                  <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 1 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
+                    <Globe className="h-3 w-3 mb-0.5" /> ID
+                  </div>
+                  <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 2 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
+                    <Search className="h-3 w-3 mb-0.5" /> S-REC
+                  </div>
+                  <div className={`flex flex-col items-center p-1.5 rounded-none border text-[8px] ${currentStep >= 3 ? 'border-primary bg-primary text-primary-foreground' : 'opacity-30'}`}>
+                    <Database className="h-3 w-3 mb-0.5" /> FIN
+                  </div>
                 </div>
               </div>
             ) : (
@@ -207,7 +185,7 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
           )}
         </form>
       </Card>
-      
+
       {state.report ? (
         <Card className="flex flex-col border-2 border-primary bg-primary/5 animate-in fade-in slide-in-from-bottom-2 duration-500 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
           <CardHeader className="p-4 md:p-6">
@@ -221,32 +199,32 @@ export function BackgroundCheckForm({ subject }: { subject: Subject }) {
           </CardHeader>
           <CardContent className="flex-1 space-y-4 md:space-y-6 overflow-auto p-4 md:p-6 pt-0 md:pt-0">
             <div className="space-y-4">
-                <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
-                    <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Confidence</span>
-                    <span className="text-sm font-black text-primary">{state.report.verificationScore}%</span>
-                </div>
-                <div className="rounded-none bg-background p-4 md:p-6 shadow-sm border-2 border-primary/20">
-                    <h3 className="font-black text-[9px] uppercase tracking-widest mb-3 text-muted-foreground border-b pb-1">Narrative</h3>
-                    <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap font-serif italic text-foreground/80">{state.report.report}</p>
-                </div>
-                <div className="rounded-none border-l-4 border-primary bg-background p-3 md:p-4 shadow-sm">
-                    <h3 className="font-black text-[9px] uppercase tracking-widest mb-0.5 text-primary">Risk Factor</h3>
-                    <p className="text-xs md:text-sm font-black uppercase">{state.report.riskAssessment}</p>
-                </div>
+              <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
+                <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Confidence</span>
+                <span className="text-sm font-black text-primary">{state.report.verificationScore}%</span>
+              </div>
+              <div className="rounded-none bg-background p-4 md:p-6 shadow-sm border-2 border-primary/20">
+                <h3 className="font-black text-[9px] uppercase tracking-widest mb-3 text-muted-foreground border-b pb-1">Narrative</h3>
+                <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap font-serif italic text-foreground/80">{state.report.report}</p>
+              </div>
+              <div className="rounded-none border-l-4 border-primary bg-background p-3 md:p-4 shadow-sm">
+                <h3 className="font-black text-[9px] uppercase tracking-widest mb-0.5 text-primary">Risk Factor</h3>
+                <p className="text-xs md:text-sm font-black uppercase">{state.report.riskAssessment}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
       ) : (
-         <Card className="flex items-center justify-center min-h-[300px] md:min-h-[400px] border-dashed rounded-none border-2">
-            <div className="text-center p-6 md:p-8">
-                <div className="mx-auto h-12 w-12 md:h-16 md:w-16 rounded-none bg-muted flex items-center justify-center mb-4">
-                  <FileText className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-base font-black uppercase tracking-tighter">Standby</h3>
-                <p className="mt-2 text-[9px] md:text-sm text-muted-foreground max-w-[200px] mx-auto uppercase font-bold">
-                  Initiate cycle to pull live data.
-                </p>
+        <Card className="flex items-center justify-center min-h-[300px] md:min-h-[400px] border-dashed rounded-none border-2">
+          <div className="text-center p-6 md:p-8">
+            <div className="mx-auto h-12 w-12 md:h-16 md:w-16 rounded-none bg-muted flex items-center justify-center mb-4">
+              <FileText className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
             </div>
+            <h3 className="text-base font-black uppercase tracking-tighter">Standby</h3>
+            <p className="mt-2 text-[9px] md:text-sm text-muted-foreground max-w-[200px] mx-auto uppercase font-bold">
+              Initiate cycle to pull live data.
+            </p>
+          </div>
         </Card>
       )}
     </div>

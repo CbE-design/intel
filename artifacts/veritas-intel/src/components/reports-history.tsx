@@ -5,20 +5,17 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, Calendar, ShieldCheck, Download, History } from 'lucide-react';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import type { Report } from '@/lib/types';
 
 function formatDate(date: any): string {
   if (!date) return 'Unknown Date';
-  if (date instanceof Timestamp) {
-    return format(date.toDate(), 'PPP p');
+  try {
+    return format(new Date(date), 'PPP p');
+  } catch {
+    return String(date);
   }
-  if (date instanceof Date) {
-    return format(date, 'PPP p');
-  }
-  return String(date);
 }
 
 export function ReportsHistory({ reports, isLoading }: { reports: Report[], isLoading: boolean }) {

@@ -6,14 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  BookOpen, Plus, Trash2, AlertTriangle, Eye, Zap, CheckSquare, Loader2,
-} from 'lucide-react';
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { BookOpen, Plus, Trash2, AlertTriangle, Eye, Zap, CheckSquare, Loader2 } from 'lucide-react';
+import { useCaseNotes } from '@/lib/use-api';
+import { api } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
 import type { CaseNote } from '@/lib/types';
 
 type NoteTag = CaseNote['tag'];
@@ -27,41 +24,26 @@ const TAG_CONFIG: Record<NoteTag, { label: string; icon: typeof Eye; color: stri
 
 function formatNoteTime(ts: CaseNote['timestamp']): string {
   try {
-    const d = ts instanceof Timestamp
-      ? ts.toDate()
-      : ts instanceof Date ? ts : new Date(ts as string);
-    return format(d, 'dd MMM yyyy, HH:mm');
+    return format(new Date(ts as string), 'dd MMM yyyy, HH:mm');
   } catch { return 'Unknown time'; }
 }
 
 export function CaseDiaryPanel({ subjectId }: { subjectId: string }) {
-  const firestore = useFirestore();
   const { toast } = useToast();
+  const { data: notes, isLoading, refresh } = useCaseNotes(subjectId);
   const [content, setContent] = useState('');
   const [tag, setTag] = useState<NoteTag>('Observation');
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const notesQuery = useMemoFirebase(
-    () => firestore
-      ? query(collection(firestore, 'subject_profiles', subjectId, 'case_notes'), orderBy('timestamp', 'desc'))
-      : null,
-    [firestore, subjectId]
-  );
-  const { data: notes, isLoading } = useCollection<CaseNote>(notesQuery);
-
   const handleAdd = async () => {
-    if (!content.trim() || !firestore) return;
+    if (!content.trim()) return;
     setSubmitting(true);
     try {
-      await addDoc(collection(firestore, 'subject_profiles', subjectId, 'case_notes'), {
-        content: content.trim(),
-        tag,
-        analyst: 'Analyst',
-        timestamp: serverTimestamp(),
-      });
+      await api.caseNotes.create(subjectId, { content: content.trim(), tag, analyst: 'Analyst' });
       setContent('');
       toast({ title: 'Entry logged', description: 'Case diary updated.' });
+      refresh();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Failed', description: e.message });
     } finally {
@@ -70,11 +52,11 @@ export function CaseDiaryPanel({ subjectId }: { subjectId: string }) {
   };
 
   const handleDelete = async (noteId: string) => {
-    if (!firestore) return;
     setDeletingId(noteId);
     try {
-      await deleteDoc(doc(firestore, 'subject_profiles', subjectId, 'case_notes', noteId));
+      await api.caseNotes.delete(subjectId, noteId);
       toast({ title: 'Entry removed.' });
+      refresh();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Failed', description: e.message });
     } finally {
@@ -84,7 +66,6 @@ export function CaseDiaryPanel({ subjectId }: { subjectId: string }) {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Add note */}
       <Card className="rounded-none border-2 border-primary shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
         <CardHeader className="pb-3 border-b">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -92,7 +73,6 @@ export function CaseDiaryPanel({ subjectId }: { subjectId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4 space-y-3">
-          {/* Tag selector */}
           <div className="flex flex-wrap gap-2">
             {(Object.keys(TAG_CONFIG) as NoteTag[]).map((t) => {
               const { label, icon: Icon, color } = TAG_CONFIG[t];
@@ -128,7 +108,6 @@ export function CaseDiaryPanel({ subjectId }: { subjectId: string }) {
         </CardContent>
       </Card>
 
-      {/* Notes list */}
       <Card className="rounded-none border-2 border-primary">
         <CardHeader className="pb-3 border-b">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -158,21 +137,18 @@ export function CaseDiaryPanel({ subjectId }: { subjectId: string }) {
                   const { icon: Icon, color } = TAG_CONFIG[note.tag] ?? TAG_CONFIG.Observation;
                   return (
                     <div key={note.id} className="p-4 md:p-5 flex gap-4 hover:bg-muted/5 transition-colors group">
-                      {/* Tag indicator */}
                       <div className={`shrink-0 w-1 self-stretch rounded-full ${
                         note.tag === 'Alert' ? 'bg-destructive' :
                         note.tag === 'Evidence' ? 'bg-primary' :
                         note.tag === 'Action' ? 'bg-primary/60' :
                         'bg-muted-foreground/30'
                       }`} />
-
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-center gap-2">
                           <Badge
                             variant="outline"
                             className={`text-[7px] rounded-none font-black h-4 px-1.5 flex items-center gap-1 ${
-                              note.tag === 'Alert' ? 'border-destructive text-destructive' :
-                              'border-primary text-primary'
+                              note.tag === 'Alert' ? 'border-destructive text-destructive' : 'border-primary text-primary'
                             }`}
                           >
                             <Icon className="h-2 w-2" />
@@ -183,7 +159,6 @@ export function CaseDiaryPanel({ subjectId }: { subjectId: string }) {
                         </div>
                         <p className="text-xs leading-relaxed whitespace-pre-wrap">{note.content}</p>
                       </div>
-
                       <button
                         onClick={() => handleDelete(note.id)}
                         disabled={deletingId === note.id}
