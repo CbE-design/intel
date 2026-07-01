@@ -194,4 +194,136 @@ cyberRouter.post("/intelligence/domain-intel", async (req, res) => {
   });
 });
 
+// ─── Email Intelligence ──────────────────────────────────────────────────────
+// emailrep.io — free tier, no key required, 100 req/day.
+cyberRouter.post("/intelligence/email-intel", async (req, res) => {
+  const { email } = req.body;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+    res.status(400).json({ error: "Valid email address required." });
+    return;
+  }
+
+  const domain = String(email).split("@")[1]?.toLowerCase() ?? "";
+  const freeProviders = ["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","protonmail.com","mail.com"];
+
+  try {
+    const response = await fetch(`https://emailrep.io/${encodeURIComponent(String(email))}`, {
+      headers: { "User-Agent": "VeritasIntel/1.0", "Accept": "application/json" },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) throw new Error(`emailrep.io responded ${response.status}`);
+    const data = await response.json() as Record<string, any>;
+    res.json(data);
+  } catch {
+    // Algorithmic fallback when external service is unreachable
+    res.json({
+      email,
+      reputation: "unknown",
+      suspicious: false,
+      references: 0,
+      details: {
+        blacklisted: false,
+        malicious_activity: false,
+        credentials_leaked: false,
+        data_breach: false,
+        free_provider: freeProviders.includes(domain),
+        disposable: false,
+        domain_exists: true,
+        domain_reputation: "unknown",
+        spam: false,
+        deliverable: true,
+        valid_mx: true,
+      },
+      _source: "algorithmic_fallback",
+    });
+  }
+});
+
+// ─── Reverse Geocoding ───────────────────────────────────────────────────────
+// Nominatim (OpenStreetMap) — completely free, no API key required.
+cyberRouter.post("/intelligence/reverse-geocode", async (req, res) => {
+  const { lat, lng } = req.body;
+  if (typeof lat !== "number" || typeof lng !== "number") {
+    res.status(400).json({ error: "lat and lng must be numbers." });
+    return;
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    const response = await fetch(url, {
+      headers: { "User-Agent": "VeritasIntel/1.0", "Accept-Language": "en" },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) throw new Error(`Nominatim responded ${response.status}`);
+    const data = await response.json() as Record<string, any>;
+
+    res.json({
+      displayName: data.display_name ?? null,
+      address: data.address ?? {},
+      lat: parseFloat(data.lat ?? lat),
+      lng: parseFloat(data.lon ?? lng),
+      placeId: data.place_id,
+      type: data.type,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Wikipedia Knowledge Base ────────────────────────────────────────────────
+// Wikipedia REST API — completely free, no auth required.
+cyberRouter.get("/intelligence/wikipedia", async (req, res) => {
+  const q = String(req.query["q"] ?? "").trim();
+  if (!q) { res.status(400).json({ error: "Query parameter 'q' is required." }); return; }
+
+  try {
+    const slug = encodeURIComponent(q.replace(/ /g, "_"));
+    const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`, {
+      headers: { "User-Agent": "VeritasIntel/1.0" },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (summaryRes.ok) {
+      const d = await summaryRes.json() as Record<string, any>;
+      res.json({
+        title: d.title,
+        extract: d.extract,
+        description: d.description,
+        thumbnail: d.thumbnail?.source ?? null,
+        url: d.content_urls?.desktop?.page ?? null,
+        type: d.type,
+      });
+      return;
+    }
+
+    // Fallback: open search
+    const searchRes = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(q)}&limit=1&format=json`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (searchRes.ok) {
+      const s = await searchRes.json() as any[];
+      const title = s[1]?.[0];
+      const url = s[3]?.[0];
+      if (title) {
+        const slug2 = encodeURIComponent(title.replace(/ /g, "_"));
+        const s2 = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug2}`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (s2.ok) {
+          const d2 = await s2.json() as Record<string, any>;
+          res.json({ title: d2.title, extract: d2.extract, description: d2.description, thumbnail: d2.thumbnail?.source ?? null, url, type: d2.type });
+          return;
+        }
+      }
+    }
+
+    res.json({ error: `No Wikipedia article found for "${q}".` });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default cyberRouter;

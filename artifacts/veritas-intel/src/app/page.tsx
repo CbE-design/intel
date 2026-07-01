@@ -98,7 +98,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <div>
-                  <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-primary">AI Analysis Core</p>
+                  <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-primary">Analysis Core</p>
                   <p className="text-[8px] md:text-[10px] text-muted-foreground font-mono leading-tight">Gemini Intelligence Engine nominal.</p>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export default function Home() {
           <Card className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer">
             <CardHeader>
               <CardTitle className="text-sm font-black uppercase tracking-tighter flex items-center gap-2">
-                <Zap className="h-4 w-4" /> AI Research Terminal
+                <Zap className="h-4 w-4" /> Research Terminal
               </CardTitle>
               <CardDescription className="text-[9px] uppercase font-bold opacity-60">Launch global intelligence research</CardDescription>
             </CardHeader>
