@@ -130,3 +130,75 @@ export interface NetworkIntel {
   os: string | null;
   vulns: string[];
 }
+
+export interface SAIDDecodeResult {
+  isValid: boolean;
+  dob?: string;
+  age?: number;
+  gender?: "Male" | "Female";
+  citizenship?: "SA Citizen" | "Permanent Resident";
+  genderSequence?: string;
+  controlDigit?: string;
+  error?: string;
+}
+
+export interface PhoneIntelligence {
+  isValid: boolean;
+  isPossible?: boolean;
+  national?: string;
+  international?: string;
+  uri?: string;
+  country?: string;
+  countryCallingCode?: string;
+  nationalNumber?: string;
+  lineType?: string;
+  error?: string;
+}
+
+export interface IPIntelligence {
+  ip: string;
+  country: string;
+  countryCode: string;
+  region: string;
+  city: string;
+  isp: string;
+  org: string;
+  asn: string;
+  timezone: string;
+  lat: number;
+  lon: number;
+  isMobile: boolean;
+  isProxy: boolean;
+  isHosting: boolean;
+  ports: number[];
+  vulns: string[];
+  tags: string[];
+  hostnames: string[];
+  cpes: string[];
+}
+
+export interface CertificateEntry {
+  id: number;
+  commonName: string;
+  issuer: string;
+  notBefore: string;
+  notAfter: string;
+  loggedAt: string;
+}
+
+export interface DomainIntelligence {
+  domain: string;
+  aRecords: string[];
+  mxRecords: string[];
+  nsRecords: string[];
+  txtRecords: string[];
+  certificates: CertificateEntry[];
+}
+
+export interface CaseNote {
+  id: string;
+  content: string;
+  tag: "Evidence" | "Observation" | "Action" | "Alert";
+  analyst: string;
+  timestamp: Timestamp | Date | string;
+}
