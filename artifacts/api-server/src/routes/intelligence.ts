@@ -5,7 +5,7 @@ import { logger } from "../lib/logger";
 const intelligenceRouter = Router();
 
 function getGenAI() {
-  const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) return null;
   return new GoogleGenerativeAI(apiKey);
 }
