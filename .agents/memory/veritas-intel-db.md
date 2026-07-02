@@ -3,13 +3,13 @@ name: Veritas Intel API & AI config
 description: Key decisions for the api-server — env key names, Gemini model, esbuild externals, and sidebar quirks
 ---
 
-## Google AI key
-- Secret name in Replit is `GOOGLE_API_KEY` (not `GOOGLE_GENAI_API_KEY`)
-- All `process.env` reads in `intelligence.ts` must use `GOOGLE_API_KEY`
-
-## Gemini model
-- Use `gemini-2.0-flash` — `gemini-1.5-flash` was retired from v1beta and returns 404
-- `systemInstruction` must be passed to `getGenerativeModel({ model, systemInstruction })`, **not** to `startChat()` — passing it to `startChat` as a plain string causes a 400 Bad Request
+## AI Provider — Groq (switched from Google Gemini)
+- Secret name: `GROQ_API_KEY` (free tier, no billing — sign up at console.groq.com)
+- Package: `groq-sdk` installed in `artifacts/api-server`
+- Model: `llama-3.3-70b-versatile` — set in `chatComplete()` helper in `intelligence.ts`
+- `groq-sdk` must be in the esbuild `external` list in `build.mjs` or the build fails
+- Chat history mapping: Groq uses `"assistant"` role, not `"model"` — map accordingly
+- Old `GOOGLE_API_KEY` / `@google/generative-ai` is no longer used for AI routes
 
 ## esbuild external list
 - `pg` (postgres client) must be in the `external` array in `build.mjs` or the build fails with "Could not resolve pg"
