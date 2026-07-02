@@ -1,6 +1,5 @@
 import { Router } from "express";
 import Groq from "groq-sdk";
-import { logger } from "../lib/logger";
 
 const intelligenceRouter = Router();
 
@@ -10,8 +9,35 @@ function getGroq() {
   return new Groq({ apiKey });
 }
 
+/** Detects Groq rate-limit errors across SDK error shapes */
 function isQuotaError(e: any): boolean {
-  return e?.status === 429 || (typeof e?.message === "string" && e.message.includes("429"));
+  const status = e?.status ?? e?.statusCode ?? e?.error?.status ?? e?.error?.code;
+  if (status === 429) return true;
+  const msg: string = e?.message ?? e?.error?.message ?? "";
+  return msg.includes("429") || msg.toLowerCase().includes("rate limit") || msg.toLowerCase().includes("quota");
+}
+
+/** Extract + parse the first JSON object/array from an LLM response, or throw */
+function parseJSON(raw: string): any {
+  // Strip markdown fences
+  let cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  // Try direct parse first
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Find first { or [ and try from there
+    const start = cleaned.search(/[{[]/);
+    if (start !== -1) {
+      const slice = cleaned.slice(start);
+      const end = Math.max(slice.lastIndexOf("}"), slice.lastIndexOf("]")) + 1;
+      try {
+        return JSON.parse(slice.slice(0, end));
+      } catch {
+        // fall through
+      }
+    }
+    throw new Error("Model returned non-JSON response");
+  }
 }
 
 // Mock forensic data when AI gateway is unavailable
@@ -26,9 +52,9 @@ function getMockData(module: string, idSuffix: string) {
     case "rica": return { status: "Verified", registeredName: "SUBJECT IDENTITY VERIFIED", provider: "Vodacom SA", registeredId: `850101${idSuffix}080`, ricaDate: new Date().toISOString() };
     case "breachcheck": return [{ name: "Identity Leak Cluster", breachDate: "2023-11-12", dataClasses: ["Emails", "National ID", "Phone"] }];
     case "phoneinfoga": return { carrier: "Vodacom SA", location: "Gauteng, ZA", type: "Mobile", valid: true };
-    case "avs": return { accountFound: true, holderMatch: true, accountStatus: "Open", accountType: "Current", verifiedDate: new Date().toISOString() };
     case "deeds": return [{ address: "45 Rivonia Rd, Sandton", estimatedValue: 4200000, purchaseDate: "2021-05-20" }];
     case "natis": return [{ make: "Toyota", model: "Land Cruiser", licensePlate: `GP ${idSuffix} GP` }];
+    case "holehe": return [{ site: "Gmail", exists: true }, { site: "Outlook", exists: false }];
     default: return [];
   }
 }
@@ -88,8 +114,18 @@ Regulations: ${southAfricanRegulations || "Standard SA POPIA framework"}
 Respond ONLY with valid JSON: { "report": "long professional dossier text", "riskAssessment": "CLEAR|CAUTION|CRITICAL", "verificationScore": 0-100 }`;
 
     const text = await chatComplete(groq, systemPrompt, userContent);
-    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const result = JSON.parse(cleaned);
+
+    let result: any;
+    try {
+      result = parseJSON(text);
+    } catch {
+      // Model returned non-JSON; wrap prose response in expected schema
+      result = {
+        report: text || "Analysis complete — no structured report returned.",
+        riskAssessment: "CLEAR",
+        verificationScore: 50,
+      };
+    }
     res.json(result);
   } catch (e: any) {
     req.log.error({ err: e }, "Background check failed");
@@ -104,21 +140,25 @@ Respond ONLY with valid JSON: { "report": "long professional dossier text", "ris
 // POST /api/intelligence/deep-search
 intelligenceRouter.post("/intelligence/deep-search", async (req, res) => {
   try {
-    const { name, idNumber, phoneNumber } = req.body;
+    const { name, idNumber } = req.body;
     if (!name || !idNumber) {
       res.status(400).json({ error: "name and idNumber are required." });
       return;
     }
 
     const idSuffix = String(idNumber).slice(-4);
-    const sherlock = getMockData("sherlock", idSuffix);
-    const harvester = getMockData("harvester", idSuffix);
-    const phone = getMockData("phoneinfoga", idSuffix);
-    const rica = getMockData("rica", idSuffix);
-    const breaches = getMockData("breachcheck", idSuffix);
-    const properties = getMockData("deeds", idSuffix);
-    const vehicles = getMockData("natis", idSuffix);
-    const holehe = [{ site: "Gmail", exists: true }, { site: "Outlook", exists: false }];
+
+    // Build telemetry server-side from trusted mock sources
+    const telemetry = {
+      sherlock: getMockData("sherlock", idSuffix),
+      harvester: getMockData("harvester", idSuffix),
+      phone: getMockData("phoneinfoga", idSuffix),
+      rica: getMockData("rica", idSuffix),
+      breaches: getMockData("breachcheck", idSuffix),
+      holehe: getMockData("holehe", idSuffix),
+      properties: getMockData("deeds", idSuffix),
+      vehicles: getMockData("natis", idSuffix),
+    };
 
     const groq = getGroq();
     if (!groq) {
@@ -129,47 +169,63 @@ intelligenceRouter.post("/intelligence/deep-search", async (req, res) => {
           { platform: "Breach Directory", status: "EXPOSURE_DETECTED", details: "Identity found in 1 breach cluster.", confidence: 80 },
           { platform: "Social OSINT", status: "PROFILE_FOUND", details: "Active on 2 platforms.", confidence: 70 },
         ],
-        sherlockResults: sherlock,
-        harvesterResults: harvester,
-        phoneResults: phone,
-        holeheResults: holehe,
-        ricaResults: rica,
-        breachResults: breaches,
-        propertyResults: properties,
-        vehicleResults: vehicles,
+        sherlockResults: telemetry.sherlock,
+        harvesterResults: telemetry.harvester,
+        phoneResults: telemetry.phone,
+        holeheResults: telemetry.holehe,
+        ricaResults: telemetry.rica,
+        breachResults: telemetry.breaches,
+        propertyResults: telemetry.properties,
+        vehicleResults: telemetry.vehicles,
         overallRiskScore: 35,
       });
       return;
     }
 
-    const systemPrompt = `You are an Advanced Intelligence Discovery Agent at Veritas Intel. Synthesise OSINT telemetry into digital forensic dossiers. Always respond with valid JSON only — no markdown, no commentary.`;
+    // Only ask the model to synthesise narrative fields — telemetry is attached server-side
+    const systemPrompt = `You are an Advanced Intelligence Discovery Agent at Veritas Intel. Synthesise OSINT telemetry into concise forensic narratives. Always respond with valid JSON only — no markdown, no commentary.`;
 
-    const userContent = `Synthesise this OSINT telemetry for ${name} (ID: ${idNumber}) into a digital forensic dossier.
+    const userContent = `Synthesise the following OSINT telemetry for subject: ${name} (ID: ${idNumber}).
 
-SHERLOCK: ${JSON.stringify(sherlock)}
-RICA: ${JSON.stringify(rica)}
-BREACHES: ${JSON.stringify(breaches)}
-PHONE: ${JSON.stringify(phone)}
+SHERLOCK (social profiles): ${JSON.stringify(telemetry.sherlock)}
+RICA status: ${JSON.stringify(telemetry.rica)}
+BREACH exposure: ${JSON.stringify(telemetry.breaches)}
+PHONE intel: ${JSON.stringify(telemetry.phone)}
 
-Respond ONLY with valid JSON:
+Respond ONLY with valid JSON containing these exact keys:
 {
-  "summary": "executive summary string",
+  "summary": "executive summary string (2-3 sentences)",
   "findings": [{"platform":"string","status":"string","details":"string","confidence":0}],
-  "sherlockResults": ${JSON.stringify(sherlock)},
-  "harvesterResults": ${JSON.stringify(harvester)},
-  "phoneResults": ${JSON.stringify(phone)},
-  "holeheResults": ${JSON.stringify(holehe)},
-  "ricaResults": ${JSON.stringify(rica)},
-  "breachResults": ${JSON.stringify(breaches)},
-  "propertyResults": ${JSON.stringify(properties)},
-  "vehicleResults": ${JSON.stringify(vehicles)},
-  "overallRiskScore": 35
+  "overallRiskScore": 0
 }`;
 
     const text = await chatComplete(groq, systemPrompt, userContent);
-    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const result = JSON.parse(cleaned);
-    res.json(result);
+
+    let aiResult: any;
+    try {
+      aiResult = parseJSON(text);
+    } catch {
+      aiResult = {
+        summary: `OSINT sweep complete for ${name}. Review telemetry for detailed findings.`,
+        findings: [{ platform: "AI Synthesis", status: "PARSE_ERROR", details: "Model returned non-structured response.", confidence: 0 }],
+        overallRiskScore: 35,
+      };
+    }
+
+    // Attach trusted telemetry server-side — never echo user/model data back
+    res.json({
+      summary: aiResult.summary ?? "",
+      findings: aiResult.findings ?? [],
+      overallRiskScore: aiResult.overallRiskScore ?? 35,
+      sherlockResults: telemetry.sherlock,
+      harvesterResults: telemetry.harvester,
+      phoneResults: telemetry.phone,
+      holeheResults: telemetry.holehe,
+      ricaResults: telemetry.rica,
+      breachResults: telemetry.breaches,
+      propertyResults: telemetry.properties,
+      vehicleResults: telemetry.vehicles,
+    });
   } catch (e: any) {
     req.log.error({ err: e }, "Deep search failed");
     if (isQuotaError(e)) {
@@ -202,10 +258,13 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
       ? `You are a Senior Intelligence Analyst at Veritas Intel analysing subject: ${subjectProfile.name} (ID: ${subjectProfile.idNumber}, Address: ${subjectProfile.address}, Phone: ${subjectProfile.phoneNumber}).${dossierContext ? ` Prior findings: ${dossierContext}` : ""}`
       : `You are a Lead Global Criminologist & Forensic Intelligence Analyst at Veritas Intel. Provide technically precise analysis of criminal trends, syndicates, and modus operandi for professional investigative purposes.`;
 
-    const chatHistory: { role: "user" | "assistant"; content: string }[] = (history || []).map((h: any) => ({
-      role: h.role === "model" ? "assistant" : "user",
-      content: h.content,
-    }));
+    // Normalise history roles — only "user" and "assistant" are valid for Groq
+    const chatHistory: { role: "user" | "assistant"; content: string }[] = (history ?? [])
+      .filter((h: any) => h?.content && typeof h.content === "string")
+      .map((h: any) => ({
+        role: (h.role === "assistant" || h.role === "model") ? "assistant" as const : "user" as const,
+        content: h.content,
+      }));
 
     const text = await chatComplete(groq, systemPrompt, message, chatHistory);
     res.json({ response: text, assessment: "TREND_ANALYSIS" });
