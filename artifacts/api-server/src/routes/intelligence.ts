@@ -5,7 +5,7 @@ import { logger } from "../lib/logger";
 const intelligenceRouter = Router();
 
 function getGenAI() {
-  const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) return null;
   return new GoogleGenerativeAI(apiKey);
 }
@@ -31,7 +31,7 @@ function getMockData(module: string, idSuffix: string) {
 
 async function generateWithAI(prompt: string): Promise<string> {
   const genAI = getGenAI();
-  if (!genAI) throw new Error("GOOGLE_GENAI_API_KEY not configured");
+  if (!genAI) throw new Error("GOOGLE_API_KEY not configured");
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const result = await model.generateContent(prompt);
   return result.response.text();
@@ -46,9 +46,9 @@ intelligenceRouter.post("/intelligence/background-check", async (req, res) => {
       return;
     }
 
-    if (!process.env.GOOGLE_GENAI_API_KEY) {
+    if (!process.env.GOOGLE_API_KEY) {
       res.json({
-        report: `INTELLIGENCE DOSSIER — ${subjectProfile.name}\n\nEXECUTIVE SUMMARY\nSubject ${subjectProfile.name} (ID: ${subjectProfile.idNumber}) has been processed through the Veritas Intel forensic pipeline. Initial sweep indicates no outstanding warrants or active criminal proceedings.\n\nFINDINGS\nCriminal Record: ${backgroundCheckParameters?.criminalRecordCheck ? "Checked — No major findings." : "Not requested."}\nCredit History: ${backgroundCheckParameters?.creditHistoryCheck ? "Checked — Credit profile nominal." : "Not requested."}\nEmployment: ${backgroundCheckParameters?.employmentVerification ? "Verified — Employment records confirmed." : "Not requested."}\n\nRISK MITIGATION\nContinued monitoring recommended. All data sourced from authorized SA intelligence gateways.\n\nNOTE: Configure GOOGLE_GENAI_API_KEY in Replit Secrets for full AI-powered analysis.`,
+        report: `INTELLIGENCE DOSSIER — ${subjectProfile.name}\n\nEXECUTIVE SUMMARY\nSubject ${subjectProfile.name} (ID: ${subjectProfile.idNumber}) has been processed through the Veritas Intel forensic pipeline. Initial sweep indicates no outstanding warrants or active criminal proceedings.\n\nFINDINGS\nCriminal Record: ${backgroundCheckParameters?.criminalRecordCheck ? "Checked — No major findings." : "Not requested."}\nCredit History: ${backgroundCheckParameters?.creditHistoryCheck ? "Checked — Credit profile nominal." : "Not requested."}\nEmployment: ${backgroundCheckParameters?.employmentVerification ? "Verified — Employment records confirmed." : "Not requested."}\n\nRISK MITIGATION\nContinued monitoring recommended. All data sourced from authorized SA intelligence gateways.\n\nNOTE: Configure GOOGLE_API_KEY in Replit Secrets for full AI-powered analysis.`,
         riskAssessment: "CLEAR",
         verificationScore: 72,
       });
@@ -95,7 +95,7 @@ intelligenceRouter.post("/intelligence/deep-search", async (req, res) => {
     const vehicles = getMockData("natis", idSuffix);
     const holehe = [{ site: "Gmail", exists: true }, { site: "Outlook", exists: false }];
 
-    if (!process.env.GOOGLE_GENAI_API_KEY) {
+    if (!process.env.GOOGLE_API_KEY) {
       res.json({
         summary: `OSINT sweep complete for ${name}. Digital footprint detected across multiple platforms. RICA registration verified. Standard exposure level detected.`,
         findings: [
@@ -157,11 +157,11 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
       return;
     }
 
-    if (!process.env.GOOGLE_GENAI_API_KEY) {
+    if (!process.env.GOOGLE_API_KEY) {
       res.json({
-        response: `[SIMULATED — Configure GOOGLE_GENAI_API_KEY in Replit Secrets for live AI analysis] Query received: "${message}". Intelligence analysis engine standing by.`,
+        response: `[SIMULATED — Configure GOOGLE_API_KEY in Replit Secrets for live AI analysis] Query received: "${message}". Intelligence analysis engine standing by.`,
         assessment: "CLEAR",
-        suggestedAction: "Configure GOOGLE_GENAI_API_KEY in Replit Secrets to enable live AI analysis.",
+        suggestedAction: "Configure GOOGLE_API_KEY in Replit Secrets to enable live AI analysis.",
       });
       return;
     }
