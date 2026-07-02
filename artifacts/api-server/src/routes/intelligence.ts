@@ -29,12 +29,23 @@ function getMockData(module: string, idSuffix: string) {
   }
 }
 
+function isQuotaError(e: any): boolean {
+  return e?.status === 429 || (typeof e?.message === "string" && e.message.includes("429"));
+}
+
 async function generateWithAI(prompt: string): Promise<string> {
   const genAI = getGenAI();
   if (!genAI) throw new Error("GOOGLE_API_KEY not configured");
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (e: any) {
+    if (isQuotaError(e)) {
+      throw Object.assign(new Error("AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan."), { isQuota: true });
+    }
+    throw e;
+  }
 }
 
 // POST /api/intelligence/background-check
@@ -72,6 +83,10 @@ Respond ONLY with valid JSON (no markdown): { "report": "long professional dossi
     res.json(result);
   } catch (e: any) {
     req.log.error({ err: e }, "Background check failed");
+    if (isQuotaError(e) || e?.isQuota) {
+      res.status(429).json({ error: "AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan at ai.google.dev.", isQuota: true });
+      return;
+    }
     res.status(500).json({ error: e.message || "Intelligence Check Failed." });
   }
 });
@@ -144,6 +159,10 @@ Respond ONLY with valid JSON (no markdown):
     res.json(result);
   } catch (e: any) {
     req.log.error({ err: e }, "Deep search failed");
+    if (isQuotaError(e) || e?.isQuota) {
+      res.status(429).json({ error: "AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan at ai.google.dev.", isQuota: true });
+      return;
+    }
     res.status(500).json({ error: e.message || "Deep Discovery Failed." });
   }
 });
@@ -174,7 +193,7 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
 
     // systemInstruction must be passed to getGenerativeModel, not startChat
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite",
       systemInstruction,
     });
 
@@ -193,6 +212,10 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
     res.json({ response: text, assessment: "TREND_ANALYSIS" });
   } catch (e: any) {
     req.log.error({ err: e }, "Intelligence chat failed");
+    if (isQuotaError(e) || e?.isQuota) {
+      res.status(429).json({ error: "AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan at ai.google.dev.", isQuota: true });
+      return;
+    }
     res.status(500).json({ error: e.message || "Intelligence Chat Failed." });
   }
 });

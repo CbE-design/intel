@@ -83,7 +83,11 @@ READY TO INTERROGATE GLOBAL SYNDICATE STRUCTURES AND MODUS OPERANDI.`
       const result = await performGlobalResearchAction(userMessage + "\n\n" + currentDossierContext);
 
       if (result.error) {
-        setMessages(prev => [...prev, { role: 'model', content: `CRITICAL SYSTEM ERROR: ${result.error}` }]);
+        const isQuota = result.statusCode === 429 || result.isQuota;
+        const msg = isQuota
+          ? `[ QUOTA LIMIT REACHED ]\n\nThe free AI tier daily limit has been exhausted. Options:\n• Wait a few minutes and retry\n• Upgrade your Google AI plan at ai.google.dev\n• Your key: GOOGLE_API_KEY in Replit Secrets`
+          : `[ NODE FAILURE ]\n\n${result.error}`;
+        setMessages(prev => [...prev, { role: 'model', content: msg }]);
       } else if (result.response) {
         setMessages(prev => [...prev, {
           role: 'model',

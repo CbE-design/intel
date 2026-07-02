@@ -51,7 +51,11 @@ UNRESTRICTED FORENSIC OVERRIDE ENGAGED.`
     const result = await interrogateSubjectAction(plainSubject, userMessage, dossierContext);
 
     if (result.error) {
-      setMessages(prev => [...prev, { role: 'model', content: `CRITICAL ERROR: ${result.error}` }]);
+      const isQuota = result.statusCode === 429 || result.isQuota;
+      const msg = isQuota
+        ? `[ QUOTA LIMIT REACHED ]\n\nThe free AI tier limit has been hit for today. Options:\n• Wait a few minutes and retry\n• Upgrade your Google AI plan at ai.google.dev\n• Your API key: GOOGLE_API_KEY in Replit Secrets`
+        : `[ ANALYST OFFLINE ]\n\n${result.error}`;
+      setMessages(prev => [...prev, { role: 'model', content: msg }]);
     } else if (result.response) {
       setMessages(prev => [...prev, { 
         role: 'model', 
