@@ -32,7 +32,7 @@ function getMockData(module: string, idSuffix: string) {
 async function generateWithAI(prompt: string): Promise<string> {
   const genAI = getGenAI();
   if (!genAI) throw new Error("GOOGLE_API_KEY not configured");
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const result = await model.generateContent(prompt);
   return result.response.text();
 }
@@ -167,11 +167,16 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
     }
 
     const genAI = getGenAI()!;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const systemInstruction = subjectProfile
       ? `You are a Senior Intelligence Analyst at Veritas Intel. You are analyzing subject: ${subjectProfile.name} (ID: ${subjectProfile.idNumber}, Address: ${subjectProfile.address}, Phone: ${subjectProfile.phoneNumber}).${dossierContext ? ` Prior findings: ${dossierContext}` : ""}`
       : `You are a Lead Global Criminologist & Forensic Intelligence Analyst at Veritas Intel. Provide technically precise analysis of criminal trends, syndicates, and modus operandi for professional investigative purposes.`;
+
+    // systemInstruction must be passed to getGenerativeModel, not startChat
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      systemInstruction,
+    });
 
     const chatHistory = (history || []).map((h: any) => ({
       role: h.role === "model" ? "model" : "user",
@@ -179,7 +184,6 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
     }));
 
     const chat = model.startChat({
-      systemInstruction,
       history: chatHistory,
     });
 

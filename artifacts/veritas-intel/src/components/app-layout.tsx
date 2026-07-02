@@ -48,10 +48,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Global Research Terminal" isActive={pathname === '/research'} className="h-12 rounded-none uppercase text-[10px] font-black tracking-widest bg-primary/5 border border-primary/20 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-none">
+              <SidebarMenuButton asChild tooltip="Global Research Terminal" isActive={pathname === '/research'} className="h-12 rounded-none uppercase text-[10px] font-black tracking-widest hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-none">
                 <Link href="/research">
-                  <Zap className="size-5 text-primary" />
-                  <span className="text-primary">Global Research</span>
+                  <Zap className="size-5" />
+                  <span>Global Research</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -1,19 +1,19 @@
 ---
-name: Veritas Intel DB Architecture
-description: Durable decisions from Firebase→PostgreSQL migration — API pitfalls, key conventions
+name: Veritas Intel API & AI config
+description: Key decisions for the api-server — env key names, Gemini model, esbuild externals, and sidebar quirks
 ---
 
-## Pitfall: 204 No Content responses
-All DELETE endpoints return `204 No Content`. The `req()` helper in `api-client.ts` must check `res.status === 204` before calling `res.json()` — otherwise it throws `Unexpected end of JSON input`.
+## Google AI key
+- Secret name in Replit is `GOOGLE_API_KEY` (not `GOOGLE_GENAI_API_KEY`)
+- All `process.env` reads in `intelligence.ts` must use `GOOGLE_API_KEY`
 
-**Why:** Firebase never returns 204; migrating to REST APIs introduces this failure mode.
+## Gemini model
+- Use `gemini-2.0-flash` — `gemini-1.5-flash` was retired from v1beta and returns 404
+- `systemInstruction` must be passed to `getGenerativeModel({ model, systemInstruction })`, **not** to `startChat()` — passing it to `startChat` as a plain string causes a 400 Bad Request
 
-## Pitfall: AI env var must be consistent
-The Replit secret is `GOOGLE_GENAI_API_KEY`. Both the guard checks AND `getGenAI()` in `intelligence.ts` must read this exact name. Using `GOOGLE_API_KEY` in client initialization while guarding on `GOOGLE_GENAI_API_KEY` creates a split-brain where the live path is entered but the client fails silently.
+## esbuild external list
+- `pg` (postgres client) must be in the `external` array in `build.mjs` or the build fails with "Could not resolve pg"
 
-## Schema initialization
-`initSchema()` uses `CREATE TABLE IF NOT EXISTS` — safe to call on every server startup. Called at top of `app.ts` before the server starts.
-
-## How to apply
-- All subject sub-collections are nested routes: e.g. `POST /subjects/:id/background-checks`
-- Dates from the DB are ISO strings; `sanitizeForServer()` in utils.ts handles serialization for Server Actions
+## Sidebar
+- `SidebarTrigger` in `page-header.tsx` must NOT be wrapped in `md:hidden` or desktop users can't toggle it
+- Nav items must not have highlight classes (`bg-primary/5 border border-primary/20`) hardcoded in `className` — those make them always look active; use `isActive` prop only
