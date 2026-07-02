@@ -1,16 +1,20 @@
 import { Router } from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { logger } from "../lib/logger";
 
 const intelligenceRouter = Router();
 
-function getGenAI() {
-  const apiKey = process.env.GOOGLE_API_KEY;
+function getGroq() {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
-  return new GoogleGenerativeAI(apiKey);
+  return new Groq({ apiKey });
 }
 
-// Mock forensic data when gateway is unavailable
+function isQuotaError(e: any): boolean {
+  return e?.status === 429 || (typeof e?.message === "string" && e.message.includes("429"));
+}
+
+// Mock forensic data when AI gateway is unavailable
 function getMockData(module: string, idSuffix: string) {
   switch (module) {
     case "sherlock": return [
@@ -29,23 +33,26 @@ function getMockData(module: string, idSuffix: string) {
   }
 }
 
-function isQuotaError(e: any): boolean {
-  return e?.status === 429 || (typeof e?.message === "string" && e.message.includes("429"));
-}
+async function chatComplete(
+  groq: Groq,
+  systemPrompt: string,
+  userContent: string,
+  history: { role: "user" | "assistant"; content: string }[] = []
+): Promise<string> {
+  const messages: Groq.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...history,
+    { role: "user", content: userContent },
+  ];
 
-async function generateWithAI(prompt: string): Promise<string> {
-  const genAI = getGenAI();
-  if (!genAI) throw new Error("GOOGLE_API_KEY not configured");
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
-  try {
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (e: any) {
-    if (isQuotaError(e)) {
-      throw Object.assign(new Error("AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan."), { isQuota: true });
-    }
-    throw e;
-  }
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages,
+    max_tokens: 8192,
+    temperature: 0.7,
+  });
+
+  return response.choices[0]?.message?.content ?? "";
 }
 
 // POST /api/intelligence/background-check
@@ -57,16 +64,19 @@ intelligenceRouter.post("/intelligence/background-check", async (req, res) => {
       return;
     }
 
-    if (!process.env.GOOGLE_API_KEY) {
+    const groq = getGroq();
+    if (!groq) {
       res.json({
-        report: `INTELLIGENCE DOSSIER — ${subjectProfile.name}\n\nEXECUTIVE SUMMARY\nSubject ${subjectProfile.name} (ID: ${subjectProfile.idNumber}) has been processed through the Veritas Intel forensic pipeline. Initial sweep indicates no outstanding warrants or active criminal proceedings.\n\nFINDINGS\nCriminal Record: ${backgroundCheckParameters?.criminalRecordCheck ? "Checked — No major findings." : "Not requested."}\nCredit History: ${backgroundCheckParameters?.creditHistoryCheck ? "Checked — Credit profile nominal." : "Not requested."}\nEmployment: ${backgroundCheckParameters?.employmentVerification ? "Verified — Employment records confirmed." : "Not requested."}\n\nRISK MITIGATION\nContinued monitoring recommended. All data sourced from authorized SA intelligence gateways.\n\nNOTE: Configure GOOGLE_API_KEY in Replit Secrets for full AI-powered analysis.`,
+        report: `INTELLIGENCE DOSSIER — ${subjectProfile.name}\n\nEXECUTIVE SUMMARY\nSubject ${subjectProfile.name} (ID: ${subjectProfile.idNumber}) has been processed through the Veritas Intel forensic pipeline.\n\nFINDINGS\nCriminal Record: ${backgroundCheckParameters?.criminalRecordCheck ? "Checked — No major findings." : "Not requested."}\nCredit History: ${backgroundCheckParameters?.creditHistoryCheck ? "Checked — Credit profile nominal." : "Not requested."}\nEmployment: ${backgroundCheckParameters?.employmentVerification ? "Verified — Employment records confirmed." : "Not requested."}\n\nNOTE: Add GROQ_API_KEY in Replit Secrets for full AI-powered analysis.`,
         riskAssessment: "CLEAR",
         verificationScore: 72,
       });
       return;
     }
 
-    const prompt = `You are a Senior Intelligence Analyst at Veritas Intel. Generate a formal Intelligence Dossier for:
+    const systemPrompt = `You are a Senior Intelligence Analyst at Veritas Intel, specialising in South African law enforcement and corporate investigations. Always respond with valid JSON only — no markdown, no commentary.`;
+
+    const userContent = `Generate a formal Intelligence Dossier for:
 Subject: ${subjectProfile.name}
 ID: ${subjectProfile.idNumber}
 Address: ${subjectProfile.address || "Unknown"}
@@ -75,16 +85,16 @@ Credit Check: ${backgroundCheckParameters?.creditHistoryCheck ? "ENABLED" : "DIS
 Employment: ${backgroundCheckParameters?.employmentVerification ? "ENABLED" : "DISABLED"}
 Regulations: ${southAfricanRegulations || "Standard SA POPIA framework"}
 
-Respond ONLY with valid JSON (no markdown): { "report": "long professional dossier text", "riskAssessment": "CLEAR|CAUTION|CRITICAL", "verificationScore": 0-100 }`;
+Respond ONLY with valid JSON: { "report": "long professional dossier text", "riskAssessment": "CLEAR|CAUTION|CRITICAL", "verificationScore": 0-100 }`;
 
-    const text = await generateWithAI(prompt);
+    const text = await chatComplete(groq, systemPrompt, userContent);
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const result = JSON.parse(cleaned);
     res.json(result);
   } catch (e: any) {
     req.log.error({ err: e }, "Background check failed");
-    if (isQuotaError(e) || e?.isQuota) {
-      res.status(429).json({ error: "AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan at ai.google.dev.", isQuota: true });
+    if (isQuotaError(e)) {
+      res.status(429).json({ error: "AI quota exceeded — please retry in a moment.", isQuota: true });
       return;
     }
     res.status(500).json({ error: e.message || "Intelligence Check Failed." });
@@ -110,9 +120,10 @@ intelligenceRouter.post("/intelligence/deep-search", async (req, res) => {
     const vehicles = getMockData("natis", idSuffix);
     const holehe = [{ site: "Gmail", exists: true }, { site: "Outlook", exists: false }];
 
-    if (!process.env.GOOGLE_API_KEY) {
+    const groq = getGroq();
+    if (!groq) {
       res.json({
-        summary: `OSINT sweep complete for ${name}. Digital footprint detected across multiple platforms. RICA registration verified. Standard exposure level detected.`,
+        summary: `OSINT sweep complete for ${name}. Digital footprint detected across multiple platforms. RICA registration verified.`,
         findings: [
           { platform: "RICA Registry", status: "VERIFIED", details: "Phone number registered and validated.", confidence: 95 },
           { platform: "Breach Directory", status: "EXPOSURE_DETECTED", details: "Identity found in 1 breach cluster.", confidence: 80 },
@@ -131,14 +142,16 @@ intelligenceRouter.post("/intelligence/deep-search", async (req, res) => {
       return;
     }
 
-    const prompt = `You are an Advanced Intelligence Discovery Agent at Veritas Intel. Synthesize this OSINT telemetry for ${name} (ID: ${idNumber}) into a digital forensic dossier.
+    const systemPrompt = `You are an Advanced Intelligence Discovery Agent at Veritas Intel. Synthesise OSINT telemetry into digital forensic dossiers. Always respond with valid JSON only — no markdown, no commentary.`;
+
+    const userContent = `Synthesise this OSINT telemetry for ${name} (ID: ${idNumber}) into a digital forensic dossier.
 
 SHERLOCK: ${JSON.stringify(sherlock)}
 RICA: ${JSON.stringify(rica)}
 BREACHES: ${JSON.stringify(breaches)}
 PHONE: ${JSON.stringify(phone)}
 
-Respond ONLY with valid JSON (no markdown):
+Respond ONLY with valid JSON:
 {
   "summary": "executive summary string",
   "findings": [{"platform":"string","status":"string","details":"string","confidence":0}],
@@ -153,14 +166,14 @@ Respond ONLY with valid JSON (no markdown):
   "overallRiskScore": 35
 }`;
 
-    const text = await generateWithAI(prompt);
+    const text = await chatComplete(groq, systemPrompt, userContent);
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const result = JSON.parse(cleaned);
     res.json(result);
   } catch (e: any) {
     req.log.error({ err: e }, "Deep search failed");
-    if (isQuotaError(e) || e?.isQuota) {
-      res.status(429).json({ error: "AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan at ai.google.dev.", isQuota: true });
+    if (isQuotaError(e)) {
+      res.status(429).json({ error: "AI quota exceeded — please retry in a moment.", isQuota: true });
       return;
     }
     res.status(500).json({ error: e.message || "Deep Discovery Failed." });
@@ -176,44 +189,30 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
       return;
     }
 
-    if (!process.env.GOOGLE_API_KEY) {
+    const groq = getGroq();
+    if (!groq) {
       res.json({
-        response: `[SIMULATED — Configure GOOGLE_API_KEY in Replit Secrets for live AI analysis] Query received: "${message}". Intelligence analysis engine standing by.`,
+        response: `[STANDBY — Add GROQ_API_KEY in Replit Secrets to enable live AI analysis] Query received: "${message}".`,
         assessment: "CLEAR",
-        suggestedAction: "Configure GOOGLE_API_KEY in Replit Secrets to enable live AI analysis.",
       });
       return;
     }
 
-    const genAI = getGenAI()!;
-
-    const systemInstruction = subjectProfile
-      ? `You are a Senior Intelligence Analyst at Veritas Intel. You are analyzing subject: ${subjectProfile.name} (ID: ${subjectProfile.idNumber}, Address: ${subjectProfile.address}, Phone: ${subjectProfile.phoneNumber}).${dossierContext ? ` Prior findings: ${dossierContext}` : ""}`
+    const systemPrompt = subjectProfile
+      ? `You are a Senior Intelligence Analyst at Veritas Intel analysing subject: ${subjectProfile.name} (ID: ${subjectProfile.idNumber}, Address: ${subjectProfile.address}, Phone: ${subjectProfile.phoneNumber}).${dossierContext ? ` Prior findings: ${dossierContext}` : ""}`
       : `You are a Lead Global Criminologist & Forensic Intelligence Analyst at Veritas Intel. Provide technically precise analysis of criminal trends, syndicates, and modus operandi for professional investigative purposes.`;
 
-    // systemInstruction must be passed to getGenerativeModel, not startChat
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-lite",
-      systemInstruction,
-    });
-
-    const chatHistory = (history || []).map((h: any) => ({
-      role: h.role === "model" ? "model" : "user",
-      parts: [{ text: h.content }],
+    const chatHistory: { role: "user" | "assistant"; content: string }[] = (history || []).map((h: any) => ({
+      role: h.role === "model" ? "assistant" : "user",
+      content: h.content,
     }));
 
-    const chat = model.startChat({
-      history: chatHistory,
-    });
-
-    const result = await chat.sendMessage(message);
-    const text = result.response.text();
-
+    const text = await chatComplete(groq, systemPrompt, message, chatHistory);
     res.json({ response: text, assessment: "TREND_ANALYSIS" });
   } catch (e: any) {
     req.log.error({ err: e }, "Intelligence chat failed");
-    if (isQuotaError(e) || e?.isQuota) {
-      res.status(429).json({ error: "AI quota exceeded — free tier limit reached for today. Please retry in a few minutes or upgrade your Google AI plan at ai.google.dev.", isQuota: true });
+    if (isQuotaError(e)) {
+      res.status(429).json({ error: "AI quota exceeded — please retry in a moment.", isQuota: true });
       return;
     }
     res.status(500).json({ error: e.message || "Intelligence Chat Failed." });
