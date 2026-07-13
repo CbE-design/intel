@@ -9,6 +9,10 @@ import NewSubjectPage from '@/app/subjects/new/page';
 import SubjectDetailPage from '@/app/subjects/[id]/page';
 import ResearchPage from '@/app/research/page';
 import IntegrationsPage from '@/app/integrations/page';
+import MapPage from '@/app/map/page';
+import WatchlistPage from '@/app/watchlist/page';
+import CompanyPage from '@/app/company/page';
+import OsintPage from '@/app/osint/page';
 
 const queryClient = new QueryClient();
 
@@ -21,6 +25,10 @@ function Router() {
       <Route path="/subjects" component={SubjectsPage} />
       <Route path="/research" component={ResearchPage} />
       <Route path="/integrations" component={IntegrationsPage} />
+      <Route path="/map" component={MapPage} />
+      <Route path="/watchlist" component={WatchlistPage} />
+      <Route path="/company" component={CompanyPage} />
+      <Route path="/osint" component={OsintPage} />
       <Route component={NotFound} />
     </Switch>
   );

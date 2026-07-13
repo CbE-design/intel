@@ -70,5 +70,31 @@ export async function initSchema() {
       analyst TEXT NOT NULL DEFAULT 'Veritas AI',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS watchlist_alerts (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      subject_id TEXT REFERENCES subjects(id) ON DELETE CASCADE,
+      subject_name TEXT NOT NULL,
+      alert_type TEXT NOT NULL DEFAULT 'Manual' CHECK (alert_type IN ('Manual','Auto','Breach','Location','Status')),
+      severity TEXT NOT NULL DEFAULT 'Medium' CHECK (severity IN ('Low','Medium','High','Critical')),
+      message TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT FALSE,
+      triggered_at TIMESTAMPTZ DEFAULT NOW(),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS company_lookups (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      company_name TEXT NOT NULL,
+      registration_number TEXT,
+      directors JSONB DEFAULT '[]',
+      status TEXT DEFAULT 'Unknown',
+      incorporation_date TEXT,
+      registered_address TEXT,
+      industry TEXT,
+      raw_data JSONB,
+      analyst TEXT DEFAULT 'Veritas Intel',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 }
