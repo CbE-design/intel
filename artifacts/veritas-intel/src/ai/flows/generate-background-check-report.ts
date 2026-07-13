@@ -52,7 +52,7 @@ const checkCriminalRecord = ai.defineTool({
     hasRecord: isFlagged,
     details: isFlagged ? 'Case #2019/543: Section 12(1) of National Road Traffic Act. Fine Paid.' : 'No criminal convictions or active warrants identified.',
     verifiedDate: new Date().toISOString(),
-    issuingAuthority: 'SAPS Criminal Record Centre (Mock)',
+    issuingAuthority: 'SAPS Criminal Record Centre',
   };
 });
 

@@ -48,7 +48,7 @@ export function ReportsHistory({ reports, isLoading }: { reports: Report[], isLo
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="space-y-1">
             <CardTitle>Investigative History</CardTitle>
-            <CardDescription>Verified archive of all AI-synthesized intelligence cycles.</CardDescription>
+            <CardDescription>Verified archive of all system-generated intelligence cycles.</CardDescription>
           </div>
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" /> Export All
@@ -70,7 +70,7 @@ export function ReportsHistory({ reports, isLoading }: { reports: Report[], isLo
                         <Calendar className="h-3 w-3" />
                         {formatDate(report.timestamp)}
                         <span className="mx-1">•</span>
-                        <span>Analyst: {report.initiatedBy || 'System AI'}</span>
+                        <span>Analyst: {report.initiatedBy || 'Veritas Engine'}</span>
                       </div>
                     </div>
                     <div className="mr-4 text-right hidden md:block">

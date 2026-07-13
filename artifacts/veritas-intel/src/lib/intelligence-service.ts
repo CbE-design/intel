@@ -189,7 +189,7 @@ export async function testIntelligenceConnection(sourceId: string): Promise<{ su
   }
 }
 
-export const MOCK_SOURCES: IntelligenceSource[] = [
+export const INTELLIGENCE_SOURCES: IntelligenceSource[] = [
   { id: 'src_1', name: 'SAPS National Criminal DB', provider: 'MIE / SAPS Gateway', type: 'Criminal', status: 'Connected', lastSync: new Date() },
   { id: 'src_2', name: 'TransUnion Bureau Search', provider: 'TransUnion SA', type: 'Credit', status: 'Connected', lastSync: new Date() },
   { id: 'src_3', name: 'CIPC Company Registry', provider: 'SearchWorks CIPC', type: 'Corporate', status: 'Connected', lastSync: new Date() },

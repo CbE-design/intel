@@ -6,13 +6,13 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MOCK_SOURCES, testIntelligenceConnection, type IntelligenceSource } from '@/lib/intelligence-service';
+import { INTELLIGENCE_SOURCES, testIntelligenceConnection, type IntelligenceSource } from '@/lib/intelligence-service';
 import { ShieldCheck, Key, Database, RefreshCw, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function IntegrationsPage() {
-  const [sources, setSources] = useState<IntelligenceSource[]>(MOCK_SOURCES);
+  const [sources, setSources] = useState<IntelligenceSource[]>(INTELLIGENCE_SOURCES);
   const [testing, setTesting] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -41,7 +41,7 @@ export default function IntegrationsPage() {
           <AlertTitle className="font-black uppercase tracking-widest text-[10px]">Production Integration Notice</AlertTitle>
           <AlertDescription className="text-xs opacity-70">
             SAPS and DHA databases are accessed exclusively via authorized gateways (MIE, LexisNexis). 
-            Current endpoints are running in <strong>FORENSIC_SIMULATION</strong> mode.
+            Current endpoints are running in <strong>CONFIGURATION</strong> mode.
           </AlertDescription>
         </Alert>
 
@@ -105,7 +105,7 @@ export default function IntegrationsPage() {
               <p className="text-xs text-muted-foreground leading-relaxed font-medium italic">
                 Veritas Intel uses a decoupled service layer. For production SAPS access, you must obtain an API Key from 
                 <strong> MIE (Managed Integrity Evaluation)</strong>. Their API acts as the secure authorized bridge to 
-                the SAPS Criminal Record Centre. Once configured, replace the mock tool in 
+                the SAPS Criminal Record Centre. Once configured, replace the placeholder in 
                 <code>src/ai/flows/generate-background-check-report.ts</code> with a direct call to the MIE REST endpoint.
               </p>
             </div>

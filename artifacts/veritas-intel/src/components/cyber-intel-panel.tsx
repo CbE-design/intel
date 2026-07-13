@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Cpu, Globe, Phone, Search, ShieldCheck, ShieldAlert,
   Wifi, Server, AlertTriangle, CheckCircle2, XCircle,
-  Loader2, MapPin, Clock, Building, Hash, Key,
+  Loader2, MapPin, Clock, Building, Hash, Key, Mail,
 } from 'lucide-react';
 import type { Subject, SAIDDecodeResult, PhoneIntelligence, IPIntelligence, DomainIntelligence } from '@/lib/types';
 
@@ -331,6 +331,117 @@ function DomainIntelSection() {
   );
 }
 
+// ─── Email Intelligence Section ─────────────────────────────────────────────
+function EmailIntelSection() {
+  const [email, setEmail] = useState('');
+  const [data, setData] = useState<Record<string, any> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const lookup = async () => {
+    if (!email.trim()) return;
+    setLoading(true); setError(''); setData(null);
+    try {
+      const result = await post<Record<string, any> & { error?: string }>('/email-intel', { email: email.trim() });
+      if ('error' in result && result.error && !result.reputation) { setError(result.error); }
+      else setData(result);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const repColor = (rep: string) => {
+    if (rep === 'high') return 'text-primary';
+    if (rep === 'medium') return 'text-yellow-500';
+    if (rep === 'low' || rep === 'none') return 'text-destructive';
+    return 'text-muted-foreground';
+  };
+
+  const details = data?.details ?? {};
+
+  return (
+    <Card className="rounded-none border-2 border-primary">
+      <CardHeader className="pb-3 border-b">
+        <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+          <Mail className="h-3.5 w-3.5 text-primary" /> Email Intelligence
+        </CardTitle>
+        <CardDescription className="text-[9px]">Reputation scoring, breach exposure & deliverability via emailrep.io</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-3">
+        <div className="flex gap-2">
+          <Input
+            placeholder="e.g. target@domain.co.za"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && lookup()}
+            className="rounded-none border-2 font-mono text-xs h-8 flex-1"
+          />
+          <Button onClick={lookup} disabled={loading} size="sm" className="rounded-none font-black h-8 px-4">
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+          </Button>
+        </div>
+
+        {error && <p className="text-xs text-destructive font-mono">{error}</p>}
+
+        {data && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              {data.suspicious
+                ? <ShieldAlert className="h-4 w-4 text-destructive" />
+                : <ShieldCheck className="h-4 w-4 text-primary" />}
+              <span className={`text-xs font-black uppercase ${repColor(data.reputation)}`}>
+                Reputation: {(data.reputation ?? 'unknown').toUpperCase()}
+              </span>
+              {data.references !== undefined && (
+                <Badge variant="outline" className="text-[8px] rounded-none font-black h-5">
+                  {data.references} REFERENCES
+                </Badge>
+              )}
+              {data.suspicious && (
+                <Badge variant="destructive" className="text-[8px] rounded-none font-black h-5">SUSPICIOUS</Badge>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Blacklisted', value: details.blacklisted },
+                { label: 'Malicious Activity', value: details.malicious_activity },
+                { label: 'Credentials Leaked', value: details.credentials_leaked },
+                { label: 'Data Breach', value: details.data_breach },
+                { label: 'Spam Reported', value: details.spam },
+                { label: 'Free Provider', value: details.free_provider },
+                { label: 'Disposable', value: details.disposable },
+                { label: 'Deliverable', value: details.deliverable },
+              ].filter(r => r.value !== undefined).map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between p-2 border bg-muted/5">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+                  <span className={`text-[9px] font-black uppercase ${value ? 'text-destructive' : 'text-primary'}`}>
+                    {value ? 'YES' : 'NO'}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {details.domain_reputation && details.domain_reputation !== 'unknown' && (
+              <div className="p-2 border bg-muted/5 space-y-0.5">
+                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Domain Reputation</p>
+                <p className={`text-xs font-black uppercase ${repColor(details.domain_reputation)}`}>
+                  {details.domain_reputation}
+                </p>
+              </div>
+            )}
+
+            {data._source === 'algorithmic_fallback' && (
+              <p className="text-[8px] text-muted-foreground font-mono italic">
+                * External service unreachable — basic algorithmic analysis
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Export ────────────────────────────────────────────────────────────
 export function CyberIntelPanel({ subject }: { subject: Subject }) {
   return (
@@ -351,6 +462,12 @@ export function CyberIntelPanel({ subject }: { subject: Subject }) {
       <div className="grid md:grid-cols-2 gap-4 md:gap-6">
         <IPIntelSection />
         <DomainIntelSection />
+      </div>
+
+      <Separator />
+
+      <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+        <EmailIntelSection />
       </div>
     </div>
   );

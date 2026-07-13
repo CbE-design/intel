@@ -20,7 +20,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="border-r-2 border-primary">
+      <Sidebar collapsible="offcanvas" className="border-r-2 border-primary">
         <SidebarHeader>
           <div className="flex items-center gap-3 px-3 py-6">
             <div className="p-2 bg-black text-white dark:bg-white dark:text-black">

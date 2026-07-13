@@ -85,8 +85,8 @@ READY TO INTERROGATE GLOBAL SYNDICATE STRUCTURES AND MODUS OPERANDI.`
       if (result.error) {
         const isQuota = result.statusCode === 429 || result.isQuota;
         const msg = isQuota
-          ? `[ QUOTA LIMIT REACHED ]\n\nThe free AI tier daily limit has been exhausted. Options:\n• Wait a few minutes and retry\n• Upgrade your Google AI plan at ai.google.dev\n• Your key: GOOGLE_API_KEY in Replit Secrets`
-          : `[ NODE FAILURE ]\n\n${result.error}`;
+          ? `ANALYSIS QUOTA REACHED.\n\nThe daily analysis limit has been exhausted. Please wait a few minutes and retry.`
+          : result.error;
         setMessages(prev => [...prev, { role: 'model', content: msg }]);
       } else if (result.response) {
         setMessages(prev => [...prev, {
@@ -97,7 +97,7 @@ READY TO INTERROGATE GLOBAL SYNDICATE STRUCTURES AND MODUS OPERANDI.`
         }]);
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'model', content: `NODE CONNECTION FAILURE: Request timed out or gateway reset.` }]);
+      setMessages(prev => [...prev, { role: 'model', content: `Analysis service temporarily unavailable. Please try again.` }]);
     } finally {
       setIsLoading(false);
     }

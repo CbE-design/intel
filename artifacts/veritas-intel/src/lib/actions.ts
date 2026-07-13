@@ -138,14 +138,14 @@ export async function interrogateSubjectAction(
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      return { error: err.error || 'Handshake Denied.' };
+      return { error: err.error || 'Analysis unavailable.' };
     }
 
     const result = await res.json();
     return { response: result };
   } catch (e: any) {
     console.error('Interrogation Failure:', e);
-    return { error: e.message || 'Handshake Denied.' };
+    return { error: e.message || 'Analysis unavailable.' };
   }
 }
 
@@ -164,13 +164,13 @@ export async function performGlobalResearchAction(
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      return { error: err.error || 'Research Handshake Denied.' };
+      return { error: err.error || 'Research unavailable.' };
     }
 
     const result = await res.json();
     return { response: result };
   } catch (e: any) {
     console.error('Research Failure:', e);
-    return { error: e.message || 'Research Handshake Denied.' };
+    return { error: e.message || 'Research unavailable.' };
   }
 }

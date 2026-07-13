@@ -100,7 +100,7 @@ export function BackgroundCheckForm({ subject, onReportSaved }: { subject: Subje
 
       api.backgroundChecks.create(subject.id, {
         ...state.report,
-        initiatedBy: 'Veritas AI',
+        initiatedBy: 'Veritas Engine',
         parameters: params,
       }).then(() => {
         onReportSaved?.();
