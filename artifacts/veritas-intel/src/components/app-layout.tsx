@@ -1,7 +1,7 @@
 'use client';
 
 import { Link, useLocation } from 'wouter';
-import { Users, LayoutDashboard, ShieldCheck, Terminal, Zap, Settings } from 'lucide-react';
+import { Users, LayoutDashboard, ShieldCheck, Terminal, Zap, Settings, X } from 'lucide-react';
 
 import {
   SidebarProvider,
@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarFooter,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -22,11 +23,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar collapsible="offcanvas" className="border-r-2 border-primary">
         <SidebarHeader>
-          <div className="flex items-center gap-3 px-3 py-6">
-            <div className="p-2 bg-black text-white dark:bg-white dark:text-black">
-              <Terminal className="size-6 shrink-0" />
+          <div className="flex items-center justify-between px-3 py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-black text-white dark:bg-white dark:text-black">
+                <Terminal className="size-6 shrink-0" />
+              </div>
+              <span className="font-black text-xl tracking-tighter truncate group-data-[collapsible=icon]:hidden uppercase">Veritas Intel</span>
             </div>
-            <span className="font-black text-xl tracking-tighter truncate group-data-[collapsible=icon]:hidden uppercase">Veritas Intel</span>
+            <SidebarTrigger
+              className="h-8 w-8 rounded-none border-2 border-primary bg-background text-foreground hover:bg-primary hover:text-primary-foreground transition-none flex items-center justify-center shrink-0 ml-2"
+              aria-label="Close sidebar"
+            >
+              <X className="size-4" />
+            </SidebarTrigger>
           </div>
         </SidebarHeader>
         <SidebarContent className="px-2">

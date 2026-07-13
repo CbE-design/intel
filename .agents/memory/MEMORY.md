@@ -1,1 +1,2 @@
-- [Veritas Intel DB architecture](veritas-intel-db.md) — PostgreSQL replaces Firestore; API client must handle 204 responses; AI key must be GOOGLE_GENAI_API_KEY throughout
+- [Veritas Intel DB architecture](veritas-intel-db.md) — PostgreSQL replaces Firestore; API client must handle 204 responses; AI key must be GROQ_API_KEY throughout
+- [Veritas Intel AI architecture](veritas-intel-ai.md) — Groq llama-3.3-70b-versatile strictly; all AI calls via API server routes; Genkit/Google flows unused

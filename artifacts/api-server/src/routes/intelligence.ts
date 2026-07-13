@@ -1,16 +1,16 @@
 import { Router } from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
 const intelligenceRouter = Router();
 
-function getGenAI() {
-  const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+function getGroq() {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
-  return new GoogleGenerativeAI(apiKey);
+  return new Groq({ apiKey });
 }
 
 function isQuotaError(e: any): boolean {
-  const status = e?.status ?? e?.statusCode ?? e?.error?.status;
+  const status = e?.status ?? e?.statusCode ?? e?.error?.status ?? e?.error?.code;
   if (status === 429) return true;
   const msg: string = e?.message ?? e?.error?.message ?? "";
   return msg.includes("429") || msg.toLowerCase().includes("rate limit") || msg.toLowerCase().includes("quota");
@@ -47,25 +47,23 @@ function getMockData(module: string, idSuffix: string) {
 }
 
 async function chatComplete(
-  genai: GoogleGenerativeAI,
+  groq: Groq,
   systemPrompt: string,
   userContent: string,
-  history: { role: "user" | "model"; content: string }[] = []
+  history: { role: "user" | "assistant"; content: string }[] = []
 ): Promise<string> {
-  const model = genai.getGenerativeModel({
-    model: "gemini-1.5-flash",
-    systemInstruction: systemPrompt,
+  const messages: Groq.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...history,
+    { role: "user", content: userContent },
+  ];
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages,
+    max_tokens: 8192,
+    temperature: 0.7,
   });
-
-  const chat = model.startChat({
-    history: history.map((h) => ({
-      role: h.role === "assistant" ? "model" : h.role,
-      parts: [{ text: h.content }],
-    })),
-  });
-
-  const result = await chat.sendMessage(userContent);
-  return result.response.text();
+  return response.choices[0]?.message?.content ?? "";
 }
 
 // POST /api/intelligence/background-check
@@ -77,8 +75,8 @@ intelligenceRouter.post("/intelligence/background-check", async (req, res) => {
       return;
     }
 
-    const genai = getGenAI();
-    if (!genai) {
+    const groq = getGroq();
+    if (!groq) {
       res.json({
         report: `INTELLIGENCE DOSSIER — ${subjectProfile.name}\n\nEXECUTIVE SUMMARY\nSubject ${subjectProfile.name} (ID: ${subjectProfile.idNumber}) has been processed through the Veritas Intel forensic pipeline.\n\nFINDINGS\nCriminal Record: ${backgroundCheckParameters?.criminalRecordCheck ? "Checked — No major findings." : "Not requested."}\nCredit History: ${backgroundCheckParameters?.creditHistoryCheck ? "Checked — Credit profile nominal." : "Not requested."}\nEmployment: ${backgroundCheckParameters?.employmentVerification ? "Verified — Employment records confirmed." : "Not requested."}`,
         riskAssessment: "CLEAR",
@@ -99,20 +97,14 @@ Regulations: ${southAfricanRegulations || "Standard SA POPIA framework"}
 
 Respond ONLY with valid JSON: { "report": "long professional dossier text", "riskAssessment": "CLEAR|CAUTION|CRITICAL", "verificationScore": 0-100 }`;
 
-    const text = await chatComplete(genai, systemPrompt, userContent);
+    const text = await chatComplete(groq, systemPrompt, userContent);
     let result: any;
-    try {
-      result = parseJSON(text);
-    } catch {
-      result = { report: text || "Analysis complete.", riskAssessment: "CLEAR", verificationScore: 50 };
-    }
+    try { result = parseJSON(text); }
+    catch { result = { report: text || "Analysis complete.", riskAssessment: "CLEAR", verificationScore: 50 }; }
     res.json(result);
   } catch (e: any) {
     req.log.error({ err: e }, "Background check failed");
-    if (isQuotaError(e)) {
-      res.status(429).json({ error: "Analysis quota exceeded — please retry in a moment.", isQuota: true });
-      return;
-    }
+    if (isQuotaError(e)) { res.status(429).json({ error: "Analysis quota exceeded — please retry in a moment.", isQuota: true }); return; }
     res.status(500).json({ error: e.message || "Intelligence Check Failed." });
   }
 });
@@ -121,10 +113,7 @@ Respond ONLY with valid JSON: { "report": "long professional dossier text", "ris
 intelligenceRouter.post("/intelligence/deep-search", async (req, res) => {
   try {
     const { name, idNumber } = req.body;
-    if (!name || !idNumber) {
-      res.status(400).json({ error: "name and idNumber are required." });
-      return;
-    }
+    if (!name || !idNumber) { res.status(400).json({ error: "name and idNumber are required." }); return; }
 
     const idSuffix = String(idNumber).slice(-4);
     const telemetry = {
@@ -138,23 +127,19 @@ intelligenceRouter.post("/intelligence/deep-search", async (req, res) => {
       vehicles: getMockData("natis", idSuffix),
     };
 
-    const genai = getGenAI();
-    if (!genai) {
+    const groq = getGroq();
+    if (!groq) {
       res.json({
-        summary: `OSINT sweep complete for ${name}. Digital footprint detected across multiple platforms. RICA registration verified.`,
+        summary: `OSINT sweep complete for ${name}. Digital footprint detected across multiple platforms.`,
         findings: [
           { platform: "RICA Registry", status: "VERIFIED", details: "Phone number registered and validated.", confidence: 95 },
           { platform: "Breach Directory", status: "EXPOSURE_DETECTED", details: "Identity found in 1 breach cluster.", confidence: 80 },
           { platform: "Social OSINT", status: "PROFILE_FOUND", details: "Active on 2 platforms.", confidence: 70 },
         ],
-        sherlockResults: telemetry.sherlock,
-        harvesterResults: telemetry.harvester,
-        phoneResults: telemetry.phone,
-        holeheResults: telemetry.holehe,
-        ricaResults: telemetry.rica,
-        breachResults: telemetry.breaches,
-        propertyResults: telemetry.properties,
-        vehicleResults: telemetry.vehicles,
+        sherlockResults: telemetry.sherlock, harvesterResults: telemetry.harvester,
+        phoneResults: telemetry.phone, holeheResults: telemetry.holehe,
+        ricaResults: telemetry.rica, breachResults: telemetry.breaches,
+        propertyResults: telemetry.properties, vehicleResults: telemetry.vehicles,
         overallRiskScore: 35,
       });
       return;
@@ -168,18 +153,17 @@ RICA status: ${JSON.stringify(telemetry.rica)}
 BREACH exposure: ${JSON.stringify(telemetry.breaches)}
 PHONE intel: ${JSON.stringify(telemetry.phone)}
 
-Respond ONLY with valid JSON containing these exact keys:
+Respond ONLY with valid JSON:
 {
-  "summary": "executive summary string (2-3 sentences)",
+  "summary": "executive summary (2-3 sentences)",
   "findings": [{"platform":"string","status":"string","details":"string","confidence":0}],
   "overallRiskScore": 0
 }`;
 
-    const text = await chatComplete(genai, systemPrompt, userContent);
+    const text = await chatComplete(groq, systemPrompt, userContent);
     let aiResult: any;
-    try {
-      aiResult = parseJSON(text);
-    } catch {
+    try { aiResult = parseJSON(text); }
+    catch {
       aiResult = {
         summary: `OSINT sweep complete for ${name}. Review telemetry for detailed findings.`,
         findings: [{ platform: "Analysis Engine", status: "PARSE_ERROR", details: "Response could not be structured.", confidence: 0 }],
@@ -191,21 +175,14 @@ Respond ONLY with valid JSON containing these exact keys:
       summary: aiResult.summary ?? "",
       findings: aiResult.findings ?? [],
       overallRiskScore: aiResult.overallRiskScore ?? 35,
-      sherlockResults: telemetry.sherlock,
-      harvesterResults: telemetry.harvester,
-      phoneResults: telemetry.phone,
-      holeheResults: telemetry.holehe,
-      ricaResults: telemetry.rica,
-      breachResults: telemetry.breaches,
-      propertyResults: telemetry.properties,
-      vehicleResults: telemetry.vehicles,
+      sherlockResults: telemetry.sherlock, harvesterResults: telemetry.harvester,
+      phoneResults: telemetry.phone, holeheResults: telemetry.holehe,
+      ricaResults: telemetry.rica, breachResults: telemetry.breaches,
+      propertyResults: telemetry.properties, vehicleResults: telemetry.vehicles,
     });
   } catch (e: any) {
     req.log.error({ err: e }, "Deep search failed");
-    if (isQuotaError(e)) {
-      res.status(429).json({ error: "Analysis quota exceeded — please retry in a moment.", isQuota: true });
-      return;
-    }
+    if (isQuotaError(e)) { res.status(429).json({ error: "Analysis quota exceeded — please retry in a moment.", isQuota: true }); return; }
     res.status(500).json({ error: e.message || "Deep Discovery Failed." });
   }
 });
@@ -214,15 +191,12 @@ Respond ONLY with valid JSON containing these exact keys:
 intelligenceRouter.post("/intelligence/chat", async (req, res) => {
   try {
     const { message, subjectProfile, history, dossierContext } = req.body;
-    if (!message) {
-      res.status(400).json({ error: "message is required." });
-      return;
-    }
+    if (!message) { res.status(400).json({ error: "message is required." }); return; }
 
-    const genai = getGenAI();
-    if (!genai) {
+    const groq = getGroq();
+    if (!groq) {
       res.json({
-        response: `Analysis engine is in standby. The system requires GOOGLE_GENAI_API_KEY to be configured in Replit Secrets. Query received: "${message}".`,
+        response: `Analysis engine is in standby. GROQ_API_KEY is not configured.`,
         assessment: "CLEAR",
       });
       return;
@@ -232,21 +206,18 @@ intelligenceRouter.post("/intelligence/chat", async (req, res) => {
       ? `You are a Senior Intelligence Analyst at Veritas Intel analysing subject: ${subjectProfile.name} (ID: ${subjectProfile.idNumber}, Address: ${subjectProfile.address}, Phone: ${subjectProfile.phoneNumber}).${dossierContext ? ` Prior findings: ${dossierContext}` : ""}`
       : `You are a Lead Global Criminologist & Forensic Intelligence Analyst at Veritas Intel. Provide technically precise analysis of criminal trends, syndicates, and modus operandi for professional investigative purposes.`;
 
-    const chatHistory: { role: "user" | "model"; content: string }[] = (history ?? [])
+    const chatHistory: { role: "user" | "assistant"; content: string }[] = (history ?? [])
       .filter((h: any) => h?.content && typeof h.content === "string")
       .map((h: any) => ({
-        role: (h.role === "assistant" || h.role === "model") ? "model" as const : "user" as const,
+        role: (h.role === "assistant" || h.role === "model") ? "assistant" as const : "user" as const,
         content: h.content,
       }));
 
-    const text = await chatComplete(genai, systemPrompt, message, chatHistory);
+    const text = await chatComplete(groq, systemPrompt, message, chatHistory);
     res.json({ response: text, assessment: "TREND_ANALYSIS" });
   } catch (e: any) {
     req.log.error({ err: e }, "Intelligence chat failed");
-    if (isQuotaError(e)) {
-      res.status(429).json({ error: "Analysis quota exceeded — please retry in a moment.", isQuota: true });
-      return;
-    }
+    if (isQuotaError(e)) { res.status(429).json({ error: "Analysis quota exceeded — please retry in a moment.", isQuota: true }); return; }
     res.status(500).json({ error: e.message || "Intelligence analysis unavailable." });
   }
 });
