@@ -5,6 +5,7 @@ import cyberRouter from "./cyber-intel";
 import subjectsRouter from "./subjects";
 import researchReportsRouter from "./research-reports";
 import extendedIntelRouter from "./extended-intel";
+import analystRouter from "./analyst";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(cyberRouter);
 router.use(subjectsRouter);
 router.use(researchReportsRouter);
 router.use(extendedIntelRouter);
+router.use(analystRouter);
 
 export default router;

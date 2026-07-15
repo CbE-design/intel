@@ -13,6 +13,7 @@ import MapPage from '@/app/map/page';
 import WatchlistPage from '@/app/watchlist/page';
 import CompanyPage from '@/app/company/page';
 import OsintPage from '@/app/osint/page';
+import AnalystPage from '@/app/analyst/page';
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/watchlist" component={WatchlistPage} />
       <Route path="/company" component={CompanyPage} />
       <Route path="/osint" component={OsintPage} />
+      <Route path="/analyst" component={AnalystPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -3,7 +3,7 @@
 import { Link, useLocation } from 'wouter';
 import {
   Users, LayoutDashboard, ShieldCheck, Terminal,
-  Zap, Settings, X, Map, Bell, Building2, Eye
+  Zap, Settings, X, Map, Bell, Building2, Eye, Bot
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -48,6 +48,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const navIntel = [
+    { href: '/analyst', label: 'VERIBOT AI', icon: Bot },
     { href: '/map', label: 'Intel Map', icon: Map },
     { href: '/osint', label: 'OSINT Terminal', icon: Eye },
     { href: '/company', label: 'Company Lookup', icon: Building2 },
