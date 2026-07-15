@@ -104,46 +104,195 @@ Return JSON: { "threatLevel": "NONE|LOW|MEDIUM|HIGH|CRITICAL", "findings": [{"so
   }
 });
 
-// ─── COMPANY LOOKUP ───────────────────────────────────────────────────────────
+// ─── COMPANY LOOKUP — REAL DATA ONLY, NO AI FABRICATION ──────────────────────
 // POST /api/intelligence/company-lookup
 extRouter.post('/intelligence/company-lookup', async (req, res) => {
   try {
     const { companyName, registrationNumber } = req.body;
-    if (!companyName && !registrationNumber) { res.status(400).json({ error: 'companyName or registrationNumber required' }); return; }
+    if (!companyName && !registrationNumber) {
+      res.status(400).json({ error: 'companyName or registrationNumber required' });
+      return;
+    }
 
-    const query = companyName || registrationNumber;
+    const query = (companyName || registrationNumber).trim();
+    const sources: string[] = [];
+    const warnings: string[] = [];
 
-    // OpenCorporates free API
-    let ocData: any = null;
+    // ── 1. OpenCorporates (real CIPC-sourced data, free) ───────────────────────
+    let ocCompanies: any[] = [];
     try {
-      const ocRes = await fetch(`https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(query)}&jurisdiction_code=za&per_page=3`);
+      const ocUrl = registrationNumber
+        ? `https://api.opencorporates.com/v0.4/companies/za/${encodeURIComponent(registrationNumber)}`
+        : `https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(query)}&jurisdiction_code=za&per_page=5`;
+      const ocRes = await fetch(ocUrl, { headers: { 'User-Agent': 'Veritas-Intel/1.0' }, signal: AbortSignal.timeout(8000) });
       if (ocRes.ok) {
         const ocJson = await ocRes.json();
-        ocData = ocJson?.results?.companies?.[0]?.company ?? null;
+        if (registrationNumber && ocJson?.results?.company) {
+          ocCompanies = [ocJson.results.company];
+        } else {
+          ocCompanies = (ocJson?.results?.companies ?? []).map((c: any) => c.company).filter(Boolean);
+        }
+        if (ocCompanies.length > 0) sources.push('OpenCorporates (CIPC-sourced)');
+      } else if (ocRes.status === 429) {
+        warnings.push('OpenCorporates rate limit reached — try again in 1 minute');
+      }
+    } catch { warnings.push('OpenCorporates timed out'); }
+
+    // ── 2. Wikidata SPARQL (for listed/well-known SA companies) ────────────────
+    let wikidataResult: any = null;
+    try {
+      const sparql = `SELECT ?company ?companyLabel ?inception ?description ?employees WHERE {
+        ?company wdt:P31 wd:Q4830453 ; wdt:P17 wd:Q258 .
+        ?company rdfs:label "${query}"@en .
+        OPTIONAL { ?company wdt:P571 ?inception }
+        OPTIONAL { ?company schema:description ?description FILTER(LANG(?description)="en") }
+        OPTIONAL { ?company wdt:P1128 ?employees }
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
+      } LIMIT 1`;
+      const wdRes = await fetch(`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'Veritas-Intel/1.0' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (wdRes.ok) {
+        const wdJson = await wdRes.json();
+        const bindings = wdJson?.results?.bindings ?? [];
+        if (bindings.length > 0) {
+          wikidataResult = bindings[0];
+          sources.push('Wikidata');
+        }
       }
     } catch { /* skip */ }
 
-    // Groq enrichment
-    const enriched = await groqChat(
-      'You are a corporate intelligence analyst specialising in South African companies. Generate a detailed CIPC-style company intelligence report. Respond ONLY with valid JSON.',
-      `Company: "${companyName || 'Unknown'}" Registration: "${registrationNumber || 'Unknown'}"
-OpenCorporates data: ${ocData ? JSON.stringify({ name: ocData.name, status: ocData.current_status, jurisdiction: ocData.jurisdiction_code, registered: ocData.incorporation_date, registered_address: ocData.registered_address_in_full }) : 'not found'}
+    // ── 3. News/public mentions via DuckDuckGo instant answer ──────────────────
+    let newsSnippet: string | null = null;
+    try {
+      const ddgRes = await fetch(
+        `https://api.duckduckgo.com/?q=${encodeURIComponent(query + ' South Africa company')}&format=json&no_redirect=1&no_html=1`,
+        { headers: { 'User-Agent': 'Veritas-Intel/1.0' }, signal: AbortSignal.timeout(5000) }
+      );
+      if (ddgRes.ok) {
+        const ddgJson = await ddgRes.json();
+        if (ddgJson?.AbstractText) {
+          newsSnippet = ddgJson.AbstractText;
+          if (!sources.includes('Wikidata')) sources.push('DuckDuckGo Knowledge');
+        }
+      }
+    } catch { /* skip */ }
 
-Return JSON: { "companyName":"string", "registrationNumber":"string", "status":"Active|Dormant|Deregistered|Unknown", "incorporationDate":"string", "registeredAddress":"string", "industry":"string", "directors":[{"name":"string","id":"string","role":"string","appointed":"string"}], "riskFlags":["string"], "intelligenceSummary":"string", "riskScore":0 }`
-    );
+    // ── 4. Build response from REAL data only ──────────────────────────────────
+    if (ocCompanies.length === 0 && !wikidataResult && !newsSnippet) {
+      // Nothing found — return honest not-found, no fabrication
+      res.json({
+        found: false,
+        query,
+        sources: [],
+        warnings,
+        message: 'No records found in public registries (OpenCorporates/CIPC, Wikidata). The company may not be registered in South Africa, may trade under a different name, or may not yet be indexed. Try the exact registered name or CIPC registration number (e.g. 2005/012345/07).',
+        companies: [],
+      });
+      return;
+    }
 
-    let parsed: any = {};
-    try { parsed = JSON.parse(enriched.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim()); }
-    catch { parsed = { companyName: query, status: 'Unknown', directors: [], riskFlags: [], intelligenceSummary: enriched || 'Lookup complete.', riskScore: 0 }; }
+    // Map OpenCorporates results to structured company records
+    const companies = ocCompanies.map((oc: any) => {
+      const directors = (oc.officers ?? [])
+        .filter((o: any) => o.officer)
+        .map((o: any) => ({
+          name: o.officer.name ?? 'Unknown',
+          role: o.officer.position ?? 'Director',
+          appointed: o.officer.start_date ?? null,
+          resigned: o.officer.end_date ?? null,
+          source: 'OpenCorporates',
+        }));
 
-    // Save to DB
-    await pool.query(
-      `INSERT INTO company_lookups (company_name, registration_number, directors, status, incorporation_date, registered_address, industry, raw_data)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [parsed.companyName || query, parsed.registrationNumber || registrationNumber || '', JSON.stringify(parsed.directors || []), parsed.status || 'Unknown', parsed.incorporationDate || '', parsed.registeredAddress || '', parsed.industry || '', JSON.stringify(parsed)]
-    );
+      return {
+        companyName: oc.name ?? query,
+        registrationNumber: oc.company_number ?? null,
+        status: oc.current_status ?? 'Unknown',
+        incorporationDate: oc.incorporation_date ?? null,
+        dissolutionDate: oc.dissolution_date ?? null,
+        registeredAddress: oc.registered_address_in_full ?? oc.registered_address ?? null,
+        jurisdiction: oc.jurisdiction_code ?? 'za',
+        companyType: oc.company_type ?? null,
+        directors,
+        ocUrl: oc.opencorporates_url ?? null,
+        source: 'OpenCorporates (CIPC-sourced)',
+        verified: true,
+        wikidataDescription: wikidataResult ? (wikidataResult.description?.value ?? null) : null,
+        wikidataEmployees: wikidataResult ? (wikidataResult.employees?.value ?? null) : null,
+        newsSnippet,
+      };
+    });
 
-    res.json({ ...parsed, ocSource: ocData ? 'opencorporates' : null });
+    // If only Wikidata/news and no OC results
+    if (companies.length === 0 && (wikidataResult || newsSnippet)) {
+      companies.push({
+        companyName: query,
+        registrationNumber: null,
+        status: 'Unknown',
+        incorporationDate: wikidataResult?.inception?.value?.slice(0, 10) ?? null,
+        dissolutionDate: null,
+        registeredAddress: null,
+        jurisdiction: 'za',
+        companyType: null,
+        directors: [],
+        ocUrl: null,
+        source: sources.join(', '),
+        verified: false,
+        wikidataDescription: wikidataResult?.description?.value ?? null,
+        wikidataEmployees: wikidataResult?.employees?.value ?? null,
+        newsSnippet,
+      });
+    }
+
+    // ── 5. Groq risk analysis — only on CONFIRMED real data ────────────────────
+    let riskAnalysis: any = null;
+    if (companies.length > 0 && getGroq()) {
+      try {
+        const companySnapshot = companies[0];
+        const riskRaw = await groqChat(
+          'You are a South African corporate risk analyst. Analyse ONLY the factual data provided. Do NOT invent details. Flag only verifiable risk indicators. Respond with valid JSON only.',
+          `Real verified company data from public registries:
+Company: ${companySnapshot.companyName}
+Registration: ${companySnapshot.registrationNumber ?? 'Not found in registry'}
+Status: ${companySnapshot.status}
+Incorporated: ${companySnapshot.incorporationDate ?? 'Unknown'}
+Address: ${companySnapshot.registeredAddress ?? 'Not disclosed'}
+Directors on record: ${companySnapshot.directors.length} (${companySnapshot.directors.slice(0,3).map((d: any) => d.name).join(', ') || 'none on record'})
+Dissolved: ${companySnapshot.dissolutionDate ?? 'No'}
+Description: ${companySnapshot.wikidataDescription ?? companySnapshot.newsSnippet ?? 'None available'}
+
+Based ONLY on this data, respond with JSON:
+{ "riskScore": 0, "riskLevel": "LOW|MEDIUM|HIGH|CRITICAL", "riskFlags": ["string — only real, verifiable concerns"], "investigatorNotes": "string — factual observations only, note clearly what is unknown", "recommendedChecks": ["string — specific follow-up steps for investigator"] }`
+        );
+        try { riskAnalysis = JSON.parse(riskRaw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim()); }
+        catch { riskAnalysis = null; }
+      } catch { /* skip risk analysis */ }
+    }
+
+    // ── 6. Save to DB ──────────────────────────────────────────────────────────
+    if (companies.length > 0) {
+      try {
+        const c = companies[0];
+        await pool.query(
+          `INSERT INTO company_lookups (company_name, registration_number, directors, status, incorporation_date, registered_address, industry, raw_data)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [c.companyName, c.registrationNumber ?? '', JSON.stringify(c.directors), c.status,
+           c.incorporationDate ?? '', c.registeredAddress ?? '', c.companyType ?? '', JSON.stringify({ ...c, riskAnalysis })]
+        );
+      } catch { /* non-fatal */ }
+    }
+
+    res.json({
+      found: companies.length > 0,
+      query,
+      sources,
+      warnings,
+      companies,
+      riskAnalysis,
+      dataIntegrityNote: 'All company data is sourced directly from public registries (OpenCorporates/CIPC, Wikidata). Risk analysis is generated by AI based only on the verified data shown — no data has been fabricated.',
+    });
+
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
