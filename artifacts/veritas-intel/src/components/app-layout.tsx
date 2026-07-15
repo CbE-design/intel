@@ -5,7 +5,7 @@ import { Link, useLocation } from 'wouter';
 import {
   Users, LayoutDashboard, ShieldCheck,
   Zap, Settings, Map, Bell, Building2, Eye, Bot,
-  Shield, X, Menu
+  Shield, X, Menu, Phone
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -31,6 +31,7 @@ const NAV_SECTIONS = [
     label: 'Intelligence',
     items: [
       { href: '/analyst', label: 'VERIBOT AI', icon: Bot },
+      { href: '/phone', label: 'Phone Lookup', icon: Phone },
       { href: '/map', label: 'Intel Map', icon: Map },
       { href: '/osint', label: 'OSINT Terminal', icon: Eye },
       { href: '/company', label: 'Company Lookup', icon: Building2 },
